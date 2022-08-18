@@ -164,6 +164,10 @@ def main():
     for i in count(1):
         patient = np.random.randint(X_train.shape[0])
         x = X_train[patient]
+        mask = np.zeros(X_train.shape[1], dtype=np.float)
+        mask[np.random.choice(X_train.shape[1], 5)] = 1
+        x = x * mask
+        x = np.where(mask == 1,x,-1)
         # x = np.concatenate([x, np.ones(n_questions)])
         guesser_input = guesser._to_variable(x.reshape(-1, n_questions))
         guesser_input = guesser_input.to(device=device)
@@ -207,6 +211,10 @@ def val(i_episode: int,
 
     for i in range(len(X_val)):
         x = X_val[i]
+        mask = np.zeros(X_train.shape[1], dtype=np.float)
+        mask[np.random.choice(X_train.shape[1], 5)] = 1
+        x = x * mask
+        x = np.where(mask == 1,x,-1)
         # x = np.concatenate([x, np.ones(n_questions)])
         guesser_input = guesser._to_variable(x.reshape(-1, n_questions))
         guesser_input = guesser_input.to(device=device)

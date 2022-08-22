@@ -264,7 +264,7 @@ def main():
             if new_best_val_acc > best_val_acc:
                 best_val_acc = new_best_val_acc
                 val_trials_without_improvement = 0
-                print(f"elapsed time: {time.time() - start_time:0.1} seconds")
+                print(f"elapsed time: { round(time.time() - start_time)} seconds")
             else:
                 val_trials_without_improvement += 1
 
@@ -298,9 +298,9 @@ def val(i_episode: int,
 
         # run episode
         for t in range(FLAGS.episode_length):
-
+            must_guess = t == FLAGS.episode_length - 1
             # select action from policy
-            action = agent.get_action(state, eps=0, mask=mask)
+            action = agent.output_dim - 1 if must_guess else agent.get_action(state, eps=0, mask=mask)
             mask[action] = 0
 
             # take the action
@@ -354,9 +354,10 @@ def test():
 
         # run episode
         for t in range(FLAGS.episode_length):
-
+            must_guess = t == FLAGS.episode_length - 1
             # select action from policy
-            action = agent.get_action(state, eps=0, mask=mask)
+            action = action = agent.output_dim - 1 if must_guess else agent.get_action(state, eps=0, mask=mask)
+
             mask[action] = 0
 
             # take the action

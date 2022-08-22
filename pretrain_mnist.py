@@ -18,7 +18,7 @@ def train(epoch, guesser, train_loader):
     guesser.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         # data =  data.view(-1,784)
-        data, target = torch.cat((data, torch.ones_like(data)), dim=1), Variable(target)
+        data, target = torch.cat((data, torch.ones_like(data)), dim=1).to(device), target.to(device)
         # print(data.shape)
         guesser.optimizer.zero_grad()
         logits, probs = guesser(data)
@@ -36,7 +36,7 @@ def test(guesser, test_loader):
     test_loss = 0
     correct = 0
     for data, target in test_loader:
-        data, target = torch.cat((data, torch.ones_like(data)), dim=1), Variable(target)
+        data, target = torch.cat((data, torch.ones_like(data)), dim=1).to(device), target.to(device)
         logits, probs = guesser(data)
         # sum up batch loss
         test_loss += guesser.criterion(logits, target).item()

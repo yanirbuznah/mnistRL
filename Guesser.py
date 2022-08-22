@@ -115,6 +115,6 @@ class Guesser(nn.Module):
         # save guesser
         if os.path.exists(guesser_save_path):
             os.remove(guesser_save_path)
-        torch.save(self.cpu().state_dict(), guesser_save_path + '~')
+        torch.save(self.state_dict(), guesser_save_path + '~')
 
         os.rename(guesser_save_path + '~', guesser_save_path)

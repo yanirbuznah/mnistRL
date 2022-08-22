@@ -314,7 +314,7 @@ def val(i_episode: int,
     # save_networks(i_episode, acc)
 
     if acc > best_val_acc:
-        print(f'New best acc acheievd, saving best model {acc}')
+        print(f'New best acc acheievd, saving best model {acc:0.4}')
         save_networks(i_episode, acc)
         save_networks(i_episode='best')
 

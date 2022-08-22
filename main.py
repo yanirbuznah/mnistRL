@@ -6,6 +6,7 @@ https://gym.openai.com/evaluations/eval_onwKGm96QkO9tJwdX7L0Gw/
 """
 import os
 import shutil
+import time
 from collections import deque
 from itertools import count
 from typing import Tuple
@@ -216,7 +217,8 @@ def main():
     steps = deque(maxlen=100)
 
     replay_memory = ReplayMemory(FLAGS.capacity, FLAGS.batch_size)
-
+    start_time = time.time()
+    print(f"start_time: {start_time}")
     for i in count(1):
 
         # determint whether gesser or dqn is trained
@@ -250,6 +252,7 @@ def main():
         if len(rewards) == rewards.maxlen:
             if np.mean(rewards) >= clear_threshold:
                 print("Environment solved in {} episodes with {:1.3f}".format(i, np.mean(rewards)))
+                print(f"elapsed time: {time.time() - start_time} seconds")
                 break
 
         if i % FLAGS.val_interval == 0:
@@ -261,6 +264,7 @@ def main():
             if new_best_val_acc > best_val_acc:
                 best_val_acc = new_best_val_acc
                 val_trials_without_improvement = 0
+                print(f"elapsed time: {time.time() - start_time:0.1} seconds")
             else:
                 val_trials_without_improvement += 1
 
@@ -270,6 +274,7 @@ def main():
         # check whether to stop training
         if val_trials_without_improvement == FLAGS.val_trials_wo_im:
             print('Did not achieve val acc improvement for {} trials, training is done.'.format(FLAGS.val_trials_wo_im))
+            print(f"elapsed time: {time.time() - start_time} seconds")
             break
 
         if i % FLAGS.n_update_target_dqn == 0:

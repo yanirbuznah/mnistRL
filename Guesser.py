@@ -88,7 +88,7 @@ class Guesser(nn.Module):
         if lr < self.min_lr:
             self.optimizer.param_groups[0]['lr'] = self.min_lr
             lr = self.optimizer.param_groups[0]['lr']
-        print('Guesser learning rate = %.7f' % lr)
+        # print('Guesser learning rate = %.7f' % lr)
 
     def _to_variable(self, x: np.ndarray) -> torch.Tensor:
         """torch.Variable syntax helper

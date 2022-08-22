@@ -1,41 +1,31 @@
+from typing import List
+
 import numpy as np
 import torch
 from torch.optim import lr_scheduler
 
-from agent import Agent
+from Agent import Agent, Transition
 from dqn import DQNAgent
 from dqn_parses import FLAGS
 
+# set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
-def lambda_rule(i_episode) -> float:
-    """ stepwise learning rate calculator """
-    exponent = int(np.floor((i_episode + 1) / FLAGS.decay_step_size))
-    return np.power(FLAGS.lr_decay_factor, exponent)
 
 
 class DDQNAgent(Agent):
 
-    def __init__(self,
-                 input_dim: int,
-                 output_dim: int,
-                 hidden_dim: int,
-                 env) -> None:
-        super().__init__(name="DDQNAgent")
+    def __init__(self, input_dim: int, output_dim: int, hidden_dim: int,env,gamma) -> None:
         """Agent class that choose action and train
         Args:
             input_dim (int): input dimension
             output_dim (int): output dimension
             hidden_dim (int): hidden dimension
         """
-
-        self.env = env
+        super().__init__(name='DDQNAgent')
         self.dqn = DQNAgent(input_dim, output_dim, hidden_dim)
         self.target_dqn = DQNAgent(input_dim, output_dim, hidden_dim)
         self.input_dim = input_dim
         self.output_dim = output_dim
-
         self.loss_fn = torch.nn.MSELoss()
         self.optim = torch.optim.Adam(self.dqn.parameters(),
                                       lr=FLAGS.lr,
@@ -43,6 +33,9 @@ class DDQNAgent(Agent):
 
         self.scheduler = lr_scheduler.LambdaLR(self.optim,
                                                lr_lambda=lambda_rule)
+
+        self.env = env
+        self.gamma = gamma
 
         self.update_target_dqn()
 
@@ -52,20 +45,26 @@ class DDQNAgent(Agent):
         for param, target_param in zip(self.dqn.parameters(), self.target_dqn.parameters()):
             target_param.data.copy_(param.data)
 
+    def _to_variable(self, x: np.ndarray) -> torch.Tensor:
+        """torch.Variable syntax helper
+        Args:
+            x (np.ndarray): 2-D tensor of shape (n, input_dim)
+        Returns:
+            torch.Tensor: torch variable
+        """
+        return torch.autograd.Variable(torch.Tensor(x))
+
     def get_action(self, states: np.ndarray,
                    eps: float,
-                   mask: np.ndarray, must_guess:bool=False) -> int:
+                   mask: np.ndarray) -> int:
         """Returns an action
         Args:
             states (np.ndarray): 2-D tensor of shape (n, input_dim)
             eps (float): 𝜺-greedy for exploration
             mask (np.ndarray) zeroes out q values for questions that were already asked, so they will not be chosen again
-            must_guess (bool) True if the last turn in dev and test
         Returns:
             int: action index
         """
-        if must_guess:
-            return self.output_dim - 1
         if np.random.rand() < eps:
             r = np.random.rand()
             if r < .2:
@@ -103,7 +102,7 @@ class DDQNAgent(Agent):
         self.target_dqn.train(mode=False)
         return self.target_dqn(states)
 
-    def train(self, Q_pred: torch.FloatTensor, Q_true: torch.FloatTensor) -> float:
+    def train_on_sample(self, Q_pred: torch.FloatTensor, Q_true: torch.FloatTensor) -> float:
         """Computes `loss` and backpropagation
         Args:
             Q_pred (torch.FloatTensor): Predicted value by the network,
@@ -129,4 +128,28 @@ class DDQNAgent(Agent):
         if lr < FLAGS.min_lr:
             self.optim.param_groups[0]['lr'] = FLAGS.min_lr
             lr = self.optim.param_groups[0]['lr']
-        print('DQN learning rate = %.7f' % lr)
+        # print('DQN learning rate = %.7f' % lr)
+
+    def train(self,minibatch):
+        states = np.vstack([x.state for x in minibatch])
+        actions = np.array([x.action for x in minibatch])
+        rewards = np.array([x.reward for x in minibatch])
+        next_states = np.vstack([x.next_state for x in minibatch])
+        done = np.array([x.done for x in minibatch])
+
+        Q_predict = self.get_Q(states)
+        Q_target = Q_predict.clone().cpu().data.numpy()
+        max_actions = np.argmax(self.get_Q(next_states).cpu().data.numpy(), axis=1)
+        Q_target[np.arange(len(Q_target)), actions] = rewards + self.gamma * self.get_target_Q(next_states)[
+            np.arange(len(Q_target)), max_actions].data.numpy() * ~done
+        Q_target = self._to_variable(Q_target).to(device=device)
+
+        return self.train_on_sample(Q_predict, Q_target)
+
+
+
+def lambda_rule(i_episode) -> float:
+    """ stepwise learning rate calculator """
+    exponent = int(np.floor((i_episode + 1) / FLAGS.decay_step_size))
+    return np.power(FLAGS.lr_decay_factor, exponent)
+

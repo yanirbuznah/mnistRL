@@ -8,7 +8,7 @@ import torch.nn.functional as F
 # set device
 from torch.distributions import Normal
 
-from agent import Agent
+from Agent import Agent
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

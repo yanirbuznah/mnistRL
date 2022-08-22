@@ -21,13 +21,40 @@ class Agent:
         """
         return torch.autograd.Variable(torch.Tensor(x))
 
+    def get_action(self, states: np.ndarray,
+                   eps: float,
+                   mask: np.ndarray) -> int:
+        """Returns an action
+        Args:
+            states (np.ndarray): 2-D tensor of shape (n, input_dim)
+            eps (float): 𝜺-greedy for exploration
+            mask (np.ndarray) zeroes out q values for questions that were already asked, so they will not be chosen again
+        Returns:
+            int: action index
+        """
+        raise NotImplementedError("get_action() is not implemented")
+
+    def get_Q(self, states: np.ndarray) -> torch.FloatTensor:
+        """Returns `Q-value`
+        Args:
+            states (np.ndarray): 2-D Tensor of shape (n, input_dim)
+        Returns:
+            torch.FloatTensor: 2-D Tensor of shape (n, output_dim)
+        """
+        raise NotImplementedError("get_Q() not implemented")
+
+    # virtual methods
+    def train(self,minibatch):
+        raise NotImplementedError("train not implemented")
+
+
 Transition = namedtuple("Transition",
                         field_names=["state", "action", "reward", "next_state", "done"])
 
 
 class ReplayMemory(object):
 
-    def __init__(self, capacity: int) -> None:
+    def __init__(self, capacity: int, batch_size=64) -> None:
         """Replay memory class
         Args:
             capacity (int): Max size of this memory
@@ -35,6 +62,7 @@ class ReplayMemory(object):
         self.capacity = capacity
         self.cursor = 0
         self.memory = []
+        self.batch_size = batch_size
 
     def push(self,
              state: np.ndarray,
@@ -57,13 +85,14 @@ class ReplayMemory(object):
                                               action, reward, next_state, done)
         self.cursor = (self.cursor + 1) % self.capacity
 
-    def pop(self, batch_size: int) -> List[Transition]:
+    def pop(self, batch_size: int = None) -> List[Transition]:
         """Returns a minibatch of `Transition` randomly
         Args:
             batch_size (int): Size of mini-bach
         Returns:
             List[Transition]: Minibatch of `Transition`
         """
+        batch_size = self.batch_size if batch_size is None else batch_size
         return random.sample(self.memory, batch_size)
 
     def __len__(self) -> int:

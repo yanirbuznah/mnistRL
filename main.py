@@ -6,26 +6,150 @@ https://gym.openai.com/evaluations/eval_onwKGm96QkO9tJwdX7L0Gw/
 """
 import os
 import shutil
+from collections import deque
+from itertools import count
+from typing import List, Tuple
+
+import numpy as np
 import torch
 import torch.nn
-import numpy as np
-from collections import deque
-from typing import List, Tuple
 from sklearn.metrics import confusion_matrix
+from torch.optim import lr_scheduler
 
-from agent import Agent, Transition, ReplayMemory
-from dqn import DQNAgent
-from ddqnagent import DDQNAgent
-
-from mnist_env import Mnist_env
-from mnist_env import Guesser
 import utils
-from parses import FLAGS
+from agent import Transition, ReplayMemory
+from dqn import DQNAgent
+from dqn_parses import FLAGS
+from mnist_env import Guesser
+from mnist_env import Mnist_env
 
 # set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+def lambda_rule(i_episode) -> float:
+    """ stepwise learning rate calculator """
+    exponent = int(np.floor((i_episode + 1) / FLAGS.decay_step_size))
+    return np.power(FLAGS.lr_decay_factor, exponent)
+
+
+class Agent(object):
+
+    def __init__(self,
+                 input_dim: int,
+                 output_dim: int,
+                 hidden_dim: int) -> None:
+        """Agent class that choose action and train
+        Args:
+            input_dim (int): input dimension
+            output_dim (int): output dimension
+            hidden_dim (int): hidden dimension
+        """
+        self.dqn = DQNAgent(input_dim, output_dim, hidden_dim)
+        self.target_dqn = DQNAgent(input_dim, output_dim, hidden_dim)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+        self.loss_fn = torch.nn.MSELoss()
+        self.optim = torch.optim.Adam(self.dqn.parameters(),
+                                      lr=FLAGS.lr,
+                                      weight_decay=FLAGS.weight_decay)
+
+        self.scheduler = lr_scheduler.LambdaLR(self.optim,
+                                               lr_lambda=lambda_rule)
+
+        self.update_target_dqn()
+
+    def update_target_dqn(self):
+
+        # hard copy model parameters to target model parameters
+        for param, target_param in zip(self.dqn.parameters(), self.target_dqn.parameters()):
+            target_param.data.copy_(param.data)
+
+    def _to_variable(self, x: np.ndarray) -> torch.Tensor:
+        """torch.Variable syntax helper
+        Args:
+            x (np.ndarray): 2-D tensor of shape (n, input_dim)
+        Returns:
+            torch.Tensor: torch variable
+        """
+        return torch.autograd.Variable(torch.Tensor(x))
+
+    def get_action(self, states: np.ndarray,
+                   eps: float,
+                   mask: np.ndarray) -> int:
+        """Returns an action
+        Args:
+            states (np.ndarray): 2-D tensor of shape (n, input_dim)
+            eps (float): 𝜺-greedy for exploration
+            mask (np.ndarray) zeroes out q values for questions that were already asked, so they will not be chosen again
+        Returns:
+            int: action index
+        """
+        if np.random.rand() < eps:
+            r = np.random.rand()
+            if r < .2:
+                return np.random.choice(self.output_dim)
+            elif r < .6:
+                return np.random.choice(self.output_dim, p=env.action_probs)
+            else:
+                return self.output_dim - 1
+        else:
+            self.dqn.train(mode=False)
+            scores = self.get_Q(states)
+            _, argmax = torch.max(scores.data * mask, 1)
+            return int(argmax.item())
+
+    def get_Q(self, states: np.ndarray) -> torch.FloatTensor:
+        """Returns `Q-value`
+        Args:
+            states (np.ndarray): 2-D Tensor of shape (n, input_dim)
+        Returns:
+            torch.FloatTensor: 2-D Tensor of shape (n, output_dim)
+        """
+        states = self._to_variable(states.reshape(-1, self.input_dim))
+        states = states.to(device=device)
+        self.dqn.train(mode=False)
+        return self.dqn(states)
+
+    def get_target_Q(self, states: np.ndarray) -> torch.FloatTensor:
+        """Returns `Q-value`
+        Args:
+            states (np.ndarray): 2-D Tensor of shape (n, input_dim)
+        Returns:
+            torch.FloatTensor: 2-D Tensor of shape (n, output_dim)
+        """
+        states = self._to_variable(states.reshape(-1, self.input_dim))
+        self.target_dqn.train(mode=False)
+        return self.target_dqn(states)
+
+    def train(self, Q_pred: torch.FloatTensor, Q_true: torch.FloatTensor) -> float:
+        """Computes `loss` and backpropagation
+        Args:
+            Q_pred (torch.FloatTensor): Predicted value by the network,
+                2-D Tensor of shape(n, output_dim)
+            Q_true (torch.FloatTensor): Target value obtained from the game,
+                2-D Tensor of shape(n, output_dim)
+        Returns:
+            float: loss value
+        """
+        self.dqn.train(mode=True)
+        self.optim.zero_grad()
+        loss = self.loss_fn(Q_pred, Q_true)
+        loss.backward()
+        self.optim.step()
+
+        return loss
+
+    def update_learning_rate(self):
+        """ Learning rate updater """
+
+        self.scheduler.step()
+        lr = self.optim.param_groups[0]['lr']
+        if lr < FLAGS.min_lr:
+            self.optim.param_groups[0]['lr'] = FLAGS.min_lr
+            lr = self.optim.param_groups[0]['lr']
+        print('DQN learning rate = %.7f' % lr)
 
 
 def train_helper(agent: Agent,
@@ -114,7 +238,7 @@ def get_env_dim(env) -> Tuple[int, int]:
         int: input_dim
         int: output_dim
     """
-    input_dim = env.n_questions
+    input_dim = 2 * env.n_questions
     output_dim = env.n_questions + 1
 
     return input_dim, output_dim
@@ -142,17 +266,14 @@ def epsilon_annealing(episode: int, max_episode: int, min_eps: float) -> float:
 
 # define envurinment and agent (needed for main and test)
 env = Mnist_env(flags=FLAGS,
-                device=device,
-                load_pretrained_guesser=False
-                )
+                device=device)
 clear_threshold = 1.
 
 # define agent
 input_dim, output_dim = get_env_dim(env)
-agent = DDQNAgent(input_dim,
-                  output_dim,
-                  FLAGS.hidden_dim,
-                  env = env)
+agent = Agent(input_dim,
+              output_dim,
+              FLAGS.hidden_dim)
 
 agent.dqn.to(device=device)
 env.guesser.to(device=device)
@@ -203,7 +324,7 @@ def load_networks(i_episode: int,
     dqn_load_path = os.path.join(FLAGS.save_dir, dqn_filename)
 
     # load guesser
-    guesser = Guesser(state_dim=env.n_questions,
+    guesser = Guesser(state_dim=2 * env.n_questions,
                       hidden_dim=FLAGS.g_hidden_dim,
                       lr=FLAGS.lr,
                       min_lr=FLAGS.min_lr,
@@ -247,7 +368,7 @@ def main():
 
     replay_memory = ReplayMemory(FLAGS.capacity)
 
-    for i in range(100000):
+    for i in count(1):
 
         # determint whether gesser or dqn is trained
         if i % (2 * FLAGS.ep_per_trainee) == FLAGS.ep_per_trainee:
@@ -300,9 +421,9 @@ def main():
             env.guesser, agent.dqn = load_networks(i_episode='best')
 
         # check whether to stop training
-        # if val_trials_without_improvement == FLAGS.val_trials_wo_im:
-        #    print('Did not achieve val acc improvement for {} trials, training is done.'.format(FLAGS.val_trials_wo_im))
-        #    break
+        if val_trials_without_improvement == FLAGS.val_trials_wo_im:
+            print('Did not achieve val acc improvement for {} trials, training is done.'.format(FLAGS.val_trials_wo_im))
+            break
 
         if i % FLAGS.n_update_target_dqn == 0:
             agent.update_target_dqn()
@@ -455,4 +576,3 @@ if __name__ == '__main__':
     main()
     test()
     view_images(10)
-

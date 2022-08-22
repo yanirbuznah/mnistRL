@@ -7,96 +7,27 @@ Created on Sat Dec  7 21:49:57 2019
 Environment for MNIST
 
 """
+
+from Guesser import Guesser
+
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Dec  7 21:49:57 2019
+
+@author: urixs
+
+Environment for MNIST
+
+"""
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import mutual_info_classif
-from sklearn.tree import DecisionTreeClassifier
 
 import gym
 import torch
-import torch.nn as nn
-from torch.optim import lr_scheduler
-import torch.nn.functional as F
 
 import utils
-
-#TODO:Change
-class Guesser(nn.Module):
-    """
-    implements a net that guesses the outcome given the state
-    """
-
-    def __init__(self,
-                 state_dim,
-                 hidden_dim,
-                 num_classes=10,
-                 lr=1e-3,
-                 min_lr=1e-6,
-                 weight_decay=0.,
-                 decay_step_size=12500,
-                 lr_decay_factor=0.1):
-        super(Guesser, self).__init__()
-
-        self.min_lr = min_lr
-
-        self.layer1 = torch.nn.Sequential(
-            torch.nn.Linear(state_dim, hidden_dim),
-            torch.nn.PReLU(),
-        )
-
-        self.layer2 = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, hidden_dim),
-            torch.nn.PReLU(),
-        )
-
-        self.layer3 = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, hidden_dim),
-            torch.nn.PReLU(),
-        )
-
-        # output layer
-        self.logits = nn.Linear(hidden_dim, num_classes)
-
-        self.criterion = nn.CrossEntropyLoss()
-
-        self.optimizer = torch.optim.Adam(self.parameters(),
-                                          weight_decay=weight_decay,
-                                          lr=lr)
-
-        self.lambda_rule = lambda x: np.power(lr_decay_factor, int(np.floor((x + 1) / decay_step_size)))
-
-        self.scheduler = lr_scheduler.LambdaLR(self.optimizer,
-                                               lr_lambda=self.lambda_rule)
-
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-
-        logits = self.logits(x)
-        probs = F.softmax(logits, dim=1)
-
-        return logits, probs
-
-    def update_learning_rate(self):
-        """ Learning rate updater """
-
-        self.scheduler.step()
-        lr = self.optimizer.param_groups[0]['lr']
-        if lr < self.min_lr:
-            self.optimizer.param_groups[0]['lr'] = self.min_lr
-            lr = self.optimizer.param_groups[0]['lr']
-        print('Guesser learning rate = %.7f' % lr)
-
-    def _to_variable(self, x: np.ndarray) -> torch.Tensor:
-        """torch.Variable syntax helper
-        Args:
-            x (np.ndarray): 2-D tensor of shape (n, input_dim)
-        Returns:
-            torch.Tensor: torch variable
-        """
-        return torch.autograd.Variable(torch.Tensor(x))
 
 
 class Mnist_env(gym.Env):
@@ -134,7 +65,7 @@ class Mnist_env(gym.Env):
         scores = np.append(mi, .1)
         self.action_probs = scores / np.sum(scores)
 
-        self.guesser = Guesser(state_dim= self.n_questions,
+        self.guesser = Guesser(state_dim=2 * self.n_questions,
                                hidden_dim=flags.g_hidden_dim,
                                lr=flags.lr,
                                min_lr=flags.min_lr,
@@ -173,7 +104,7 @@ class Mnist_env(gym.Env):
         Resets 'train_guesser' flag
         """
 
-        self.state = np.zeros(self.n_questions)
+        self.state = np.concatenate([np.zeros(self.n_questions), np.zeros(self.n_questions)])
 
         if mode == 'training':
             self.patient = np.random.randint(self.X_train.shape[0])
@@ -232,13 +163,13 @@ class Mnist_env(gym.Env):
                 next_state[action] = self.X_val[self.patient, action]
             elif mode == 'test':
                 next_state[action] = self.X_test[self.patient, action]
-            # next_state[action + self.n_questions] += 1.
+            next_state[action + self.n_questions] += 1.
             self.guess = -1
             self.done = False
 
         else:  # Making a guess
             # run guesser, and store guess and outcome probability
-            guesser_input = self.guesser._to_variable(self.state.reshape(-1, self.n_questions))
+            guesser_input = self.guesser._to_variable(self.state.reshape(-1, 2 * self.n_questions))
             if torch.cuda.is_available():
                 guesser_input = guesser_input.cuda()
             self.guesser.train(mode=False)
@@ -260,8 +191,7 @@ class Mnist_env(gym.Env):
             y_true = self.y_train[self.patient]
 
         if self.guess == -1:  # no guess was made
-            return 0.0
-            # return .01 * np.random.rand()
+            return .01 * np.random.rand()
         else:
             reward = self.correct_prob
         if self.train_guesser:

@@ -84,7 +84,7 @@ parser.add_argument("--env",
 # Environment params
 parser.add_argument("--g_hidden-dim",
                     type=int,
-                    default=256,
+                    default=512,
                     help="Guesser hidden dimension")
 parser.add_argument("--g_weight_decay",
                     type=float,

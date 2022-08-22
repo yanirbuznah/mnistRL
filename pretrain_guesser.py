@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import utils
+from Guesser import Guesser
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--save_dir",
@@ -26,7 +27,7 @@ parser.add_argument("--save_dir",
                     help="Directory for saved models")
 parser.add_argument("--hidden-dim",
                     type=int,
-                    default=256,
+                    default=512,
                     help="Hidden dimension")
 parser.add_argument("--lr",
                     type=float,
@@ -54,59 +55,60 @@ FLAGS = parser.parse_args(args=[])
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class Guesser(nn.Module):
-    """
-    implements a net that guesses the outcome given the state
-    """
-
-    def __init__(self,
-                 state_dim,
-                 hidden_dim=FLAGS.hidden_dim,
-                 num_classes=10):
-        super(Guesser, self).__init__()
-
-        self.layer1 = torch.nn.Sequential(
-            torch.nn.Linear(state_dim, hidden_dim),
-            torch.nn.PReLU(),
-        )
-
-        self.layer2 = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, hidden_dim),
-            torch.nn.PReLU(),
-        )
-
-        self.layer3 = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, hidden_dim),
-            torch.nn.PReLU(),
-        )
-
-        # output layer
-        self.logits = nn.Linear(hidden_dim, num_classes)
-
-        self.criterion = nn.CrossEntropyLoss()
-
-        self.optimizer = torch.optim.Adam(self.parameters(),
-                                          weight_decay=FLAGS.weight_decay,
-                                          lr=FLAGS.lr)
-
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-
-        logits = self.logits(x)
-        probs = F.softmax(logits, dim=1)
-
-        return logits, probs
-
-    def _to_variable(self, x: np.ndarray) -> torch.Tensor:
-        """torch.Variable syntax helper
-        Args:
-            x (np.ndarray): 2-D tensor of shape (n, input_dim)
-        Returns:
-            torch.Tensor: torch variable
-        """
-        return torch.autograd.Variable(torch.Tensor(x))
+# class Guesser(nn.Module):
+#     """
+#     implements a net that guesses the outcome given the state
+#     """
+#
+#     def __init__(self,
+#                  state_dim,
+#                  hidden_dim=FLAGS.hidden_dim,
+#                  num_classes=10):
+#         super(Guesser, self).__init__()
+#
+#         self.layer1 = torch.nn.Sequential(
+#             torch.nn.Dropout(),
+#             torch.nn.Linear(state_dim, hidden_dim),
+#             torch.nn.PReLU(),
+#         )
+#
+#         self.layer2 = torch.nn.Sequential(
+#             torch.nn.Linear(hidden_dim, hidden_dim),
+#             torch.nn.PReLU(),
+#         )
+#
+#         self.layer3 = torch.nn.Sequential(
+#             torch.nn.Linear(hidden_dim, hidden_dim),
+#             torch.nn.PReLU(),
+#         )
+#
+#         # output layer
+#         self.logits = nn.Linear(hidden_dim, num_classes)
+#
+#         self.criterion = nn.CrossEntropyLoss()
+#
+#         self.optimizer = torch.optim.Adam(self.parameters(),
+#                                           weight_decay=FLAGS.weight_decay,
+#                                           lr=FLAGS.lr)
+#
+#     def forward(self, x):
+#         x = self.layer1(x)
+#         x = self.layer2(x)
+#         x = self.layer3(x)
+#
+#         logits = self.logits(x)
+#         probs = F.softmax(logits, dim=1)
+#
+#         return logits, probs
+#
+#     def _to_variable(self, x: np.ndarray) -> torch.Tensor:
+#         """torch.Variable syntax helper
+#         Args:
+#             x (np.ndarray): 2-D tensor of shape (n, input_dim)
+#         Returns:
+#             torch.Tensor: torch variable
+#         """
+#         return torch.autograd.Variable(torch.Tensor(x))
 
 
 def save_network(i_episode, acc=None):
@@ -134,7 +136,7 @@ def save_network(i_episode, acc=None):
 n_questions = 28 * 28
 
 # Initialize guesser
-guesser = Guesser(n_questions)
+guesser = Guesser(state_dim=2 * n_questions,hidden_dim=FLAGS.hidden_dim,pretrain=True)
 guesser.to(device=device)
 
 X_train, X_test, y_train, y_test = utils.load_mnist(case=FLAGS.case)
@@ -164,12 +166,8 @@ def main():
     for i in count(1):
         patient = np.random.randint(X_train.shape[0])
         x = X_train[patient]
-        mask = np.zeros(X_train.shape[1], dtype=np.float)
-        mask[np.random.choice(X_train.shape[1], 5)] = 1
-        x = x * mask
-        x = np.where(mask == 1,x,-1)
-        # x = np.concatenate([x, np.ones(n_questions)])
-        guesser_input = guesser._to_variable(x.reshape(-1, n_questions))
+        x = np.concatenate([x, np.ones(n_questions)])
+        guesser_input = guesser._to_variable(x.reshape(-1, 2 * n_questions))
         guesser_input = guesser_input.to(device=device)
         guesser.train(mode=False)
         logits, probs = guesser(guesser_input)
@@ -211,12 +209,8 @@ def val(i_episode: int,
 
     for i in range(len(X_val)):
         x = X_val[i]
-        mask = np.zeros(X_train.shape[1], dtype=np.float)
-        mask[np.random.choice(X_train.shape[1], 5)] = 1
-        x = x * mask
-        x = np.where(mask == 1,x,-1)
-        # x = np.concatenate([x, np.ones(n_questions)])
-        guesser_input = guesser._to_variable(x.reshape(-1, n_questions))
+        x = np.concatenate([x, np.ones(n_questions)])
+        guesser_input = guesser._to_variable(x.reshape(-1, 2 * n_questions))
         guesser_input = guesser_input.to(device=device)
         guesser.train(mode=False)
         logits, probs = guesser(guesser_input)
@@ -227,7 +221,7 @@ def val(i_episode: int,
     # save_network(i_episode, acc)
 
     if acc > best_val_acc:
-        print('New best Acc acheievd, saving best model')
+        print(f'New best Acc acheievd, saving best model {acc}')
         save_network(i_episode='best')
         save_network(i_episode, acc)
 

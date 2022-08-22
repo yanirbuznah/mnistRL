@@ -1,7 +1,7 @@
 import torch
 import torch.nn
 
-from parses import FLAGS
+from dqn_parses import FLAGS
 
 
 class DQNAgent(torch.nn.Module):

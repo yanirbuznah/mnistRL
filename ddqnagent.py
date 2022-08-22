@@ -2,11 +2,12 @@ import numpy as np
 import torch
 from torch.optim import lr_scheduler
 
-from dqn import DQNAgent
-from parses import FLAGS
 from agent import Agent
+from dqn import DQNAgent
+from dqn_parses import FLAGS
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def lambda_rule(i_episode) -> float:
     """ stepwise learning rate calculator """
@@ -51,19 +52,20 @@ class DDQNAgent(Agent):
         for param, target_param in zip(self.dqn.parameters(), self.target_dqn.parameters()):
             target_param.data.copy_(param.data)
 
-
-
     def get_action(self, states: np.ndarray,
                    eps: float,
-                   mask: np.ndarray) -> int:
+                   mask: np.ndarray, must_guess:bool=False) -> int:
         """Returns an action
         Args:
             states (np.ndarray): 2-D tensor of shape (n, input_dim)
             eps (float): 𝜺-greedy for exploration
             mask (np.ndarray) zeroes out q values for questions that were already asked, so they will not be chosen again
+            must_guess (bool) True if the last turn in dev and test
         Returns:
             int: action index
         """
+        if must_guess:
+            return self.output_dim - 1
         if np.random.rand() < eps:
             r = np.random.rand()
             if r < .2:

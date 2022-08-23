@@ -58,12 +58,12 @@ class Guesser(nn.Module):
         self.scheduler = lr_scheduler.LambdaLR(self.optimizer,
                                                lr_lambda=self.lambda_rule)
 
-        self.dropout = nn.Dropout()
+        self.p = 1.
 
     def forward(self, x):
         x = x.view(-1,self.state_dim)
-        # if self.pretrain:
-        #     x = self.modified_dropout(x)
+        if self.pretrain and self.p > 0.:
+            x = self.modified_dropout(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
@@ -75,7 +75,8 @@ class Guesser(nn.Module):
         return logits, probs
 
     def modified_dropout(self, x):
-        mask = nn.Dropout()(torch.ones((x.shape[0],x.shape[1]//2))) / 2
+
+        mask = nn.Dropout(self.p)(torch.ones((x.shape[0],x.shape[1]//2))) * (1-self.p)
         x = torch.concat((x[:,:mask.shape[1]]*mask, x[:,mask.shape[1]:]*mask),dim=1)
         return x
 

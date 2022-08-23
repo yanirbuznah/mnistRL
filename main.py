@@ -356,7 +356,7 @@ def test():
         for t in range(FLAGS.episode_length):
             must_guess = t == FLAGS.episode_length - 1
             # select action from policy
-            action = action = agent.output_dim - 1 if must_guess else agent.get_action(state, eps=0, mask=mask)
+            action = agent.output_dim - 1 if must_guess else agent.get_action(state, eps=0, mask=mask)
 
             mask[action] = 0
 

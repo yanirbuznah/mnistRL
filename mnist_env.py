@@ -177,7 +177,7 @@ class Mnist_env(gym.Env):
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':
                 # store probability of true outcome for reward calculation
-                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item()
+                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item() - torch.max(self.probs).item()
             self.terminate_episode()
 
         return next_state
@@ -191,7 +191,7 @@ class Mnist_env(gym.Env):
             y_true = self.y_train[self.patient]
 
         if self.guess == -1:  # no guess was made
-            return .01 * np.random.rand()
+            return (-1) *.01 * np.random.rand()
         else:
             reward = self.correct_prob
         if self.train_guesser:

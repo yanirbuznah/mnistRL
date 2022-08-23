@@ -50,10 +50,10 @@ def test(guesser, test_loader):
     return correct / len(test_loader.dataset)
 
 
-def fit(guesser, train_loader, test_loader):
+def fit(guesser, train_loader, test_loader,epoches=10):
     best_val_acc = 0
-    for epoch in range(1, 10):
-        train(epoch, guesser, train_loader)
+    for epoch in range(epoches):
+        train(epoch+1, guesser, train_loader)
         acc = test(guesser, test_loader)
         if acc > best_val_acc:
             best_val_acc = acc
@@ -90,7 +90,9 @@ def main():
     guesser = Guesser(state_dim=2 * n_questions, hidden_dim=FLAGS.hidden_dim, pretrain=True)
 
     guesser.to(device=device)
-    fit(guesser, train_loader, test_loader)
+    for p in [0.,0.2,0.4,0.6,0.8]:
+        guesser.p = p
+        fit(guesser, train_loader, test_loader,epoches = 1)
 
 
 if __name__ == '__main__':

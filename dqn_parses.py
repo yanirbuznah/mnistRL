@@ -175,7 +175,7 @@ parser.add_argument("--case",
                     help="Which data to use")
 parser.add_argument("--env",
                     type=str,
-                    default="Questionnaire",
+                    default="mnist",
                     help="environment name: Questionnaire")
 # Environment params
 parser.add_argument("--g_hidden-dim",

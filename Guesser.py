@@ -77,8 +77,7 @@ class Guesser(nn.Module):
 
     def modified_dropout(self, x):
 
-        mask = nn.Dropout(self.p)(torch.ones((x.shape[0],x.shape[1]//2))) * (1-self.p)
-        mask.to(device)
+        mask = (nn.Dropout(self.p)(torch.ones((x.shape[0],x.shape[1]//2))) * (1-self.p)).to(device)
         x = torch.concat((x[:,:mask.shape[1]]*mask, x[:,mask.shape[1]:]*mask),dim=1)
         return x
 

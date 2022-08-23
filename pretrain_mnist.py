@@ -92,7 +92,7 @@ def main():
     guesser.to(device=device)
     for p in [0.,0.2,0.4,0.6,0.8]:
         guesser.p = p
-        fit(guesser, train_loader, test_loader,epoches = 1)
+        fit(guesser, train_loader, test_loader,epoches = 5)
 
 
 if __name__ == '__main__':

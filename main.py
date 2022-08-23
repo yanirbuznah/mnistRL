@@ -26,7 +26,7 @@ from mnist_env import Mnist_env
 
 # set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+# time.sleep(600)
 
 def play_episode(env,
                  agent: Agent,
@@ -400,9 +400,9 @@ def view_images(nun_images=10, save=True):
 
         actions = []
         for t in range(FLAGS.episode_length):
-
+            must_guess = t == FLAGS.episode_length - 1
             # select action from policy
-            action = agent.get_action(state, eps=0, mask=mask)
+            action = agent.get_action(state, eps=0, mask=mask,must_guess=must_guess)
             mask[action] = 0
             actions += [action]
             # take the action
@@ -426,6 +426,7 @@ def view_images(nun_images=10, save=True):
 
 
 if __name__ == '__main__':
+
     main()
     test()
     view_images(10)

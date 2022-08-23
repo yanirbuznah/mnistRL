@@ -84,7 +84,7 @@ class Mnist_env(gym.Env):
                 print('Loading pre-trained guesser')
                 guesser_state_dict = torch.load(guesser_load_path)
                 self.guesser.load_state_dict(guesser_state_dict)
-
+        self.guesser.predict = False
         print('Initialized questionnaire environment')
 
         # Reset environment
@@ -177,7 +177,7 @@ class Mnist_env(gym.Env):
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':
                 # store probability of true outcome for reward calculation
-                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item() - torch.max(self.probs).item()
+                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item() # - torch.max(self.probs).item()
             self.terminate_episode()
 
         return next_state

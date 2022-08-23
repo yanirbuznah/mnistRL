@@ -7,6 +7,7 @@ from torch import nn
 from torch.optim import lr_scheduler
 
 from guesser_parses import FLAGS
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class Guesser(nn.Module):
@@ -77,6 +78,7 @@ class Guesser(nn.Module):
     def modified_dropout(self, x):
 
         mask = nn.Dropout(self.p)(torch.ones((x.shape[0],x.shape[1]//2))) * (1-self.p)
+        mask.to(device)
         x = torch.concat((x[:,:mask.shape[1]]*mask, x[:,mask.shape[1]:]*mask),dim=1)
         return x
 

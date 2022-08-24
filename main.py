@@ -402,7 +402,7 @@ def view_images(nun_images=10, save=True):
         for t in range(FLAGS.episode_length):
             must_guess = t == FLAGS.episode_length - 1
             # select action from policy
-            action = agent.get_action(state, eps=0, mask=mask,must_guess=must_guess)
+            action = agent.output_dim - 1 if must_guess else agent.get_action(state, eps=0, mask=mask)
             mask[action] = 0
             actions += [action]
             # take the action

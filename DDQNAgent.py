@@ -152,7 +152,7 @@ class DDQNAgent(Agent):
     def update_rewards(self, rewards, done, states, y_true):
         for i, d in enumerate(done):
             if d:
-                _, probs = self.env.guesser(self._to_variable(states[i]))
+                _, probs = self.env.guesser(self._to_variable(states[i]).to(device))
                 rewards[i] = self.env.compute_guess_reward(probs,y_true[i])
         return rewards
 

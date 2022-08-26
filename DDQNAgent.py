@@ -137,6 +137,11 @@ class DDQNAgent(Agent):
         next_states = np.vstack([x.next_state for x in minibatch])
         done = np.array([x.done for x in minibatch])
 
+        y_true = np.array([x.y_true for x in minibatch])
+
+        self.update_rewards(rewards, done, states, y_true)
+
+
         Q_predict = self.get_Q(states)
         Q_target = Q_predict.clone().cpu().data.numpy()
         max_actions = np.argmax(self.get_Q(next_states).cpu().data.numpy(), axis=1)
@@ -146,7 +151,12 @@ class DDQNAgent(Agent):
 
         return self.train_on_sample(Q_predict, Q_target)
 
-
+    def update_rewards(self, rewards, done, states, y_true):
+        for i, d in enumerate(done):
+            if d:
+                _, probs = self.env.guesser(self._to_variable(states[i]).to(device))
+                rewards[i] = probs.squeeze()[y_true[i]].item()
+        return rewards
 
 def lambda_rule(i_episode) -> float:
     """ stepwise learning rate calculator """

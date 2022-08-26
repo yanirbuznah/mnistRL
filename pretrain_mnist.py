@@ -90,9 +90,10 @@ def main():
     guesser = Guesser(state_dim=2 * n_questions, hidden_dim=FLAGS.hidden_dim, pretrain=True)
 
     guesser.to(device=device)
-    for p in [0.,0.2,0.4,0.6,0.8]:
+    for p in [0.5,0.8,0.95,0.99]:
         guesser.p = p
-        fit(guesser, train_loader, test_loader,epoches = 5)
+        print("Training with P={}".format(p))
+        fit(guesser, train_loader, test_loader,epoches = 1)
 
 
 if __name__ == '__main__':

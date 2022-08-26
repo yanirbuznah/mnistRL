@@ -147,7 +147,7 @@ class Mnist_env(gym.Env):
         if self.time == self.episode_length:
             self.terminate_episode()
 
-        return self.s, self.reward, self.done, self.guess
+        return self.s, self.reward, self.done, self.guess, self.true_y
 
     # Update 'done' flag when episode terminates
     def terminate_episode(self):
@@ -188,16 +188,16 @@ class Mnist_env(gym.Env):
         if mode == 'test':
             return None
         if mode == 'training':
-            y_true = self.y_train[self.patient]
+            self.true_y = self.y_train[self.patient]
 
         if self.guess == -1:  # no guess was made
-            return (-1) *.01 * np.random.rand()
+            return .01 * np.random.rand()
         else:
             reward = self.correct_prob
         if self.train_guesser:
             # train guesser
             self.guesser.optimizer.zero_grad()
-            y = torch.Tensor([y_true]).long()
+            y = torch.Tensor([self.true_y]).long()
             y = y.to(device=self.device)
             self.guesser.train(mode=True)
             self.guesser.loss = self.guesser.criterion(self.logits, y)

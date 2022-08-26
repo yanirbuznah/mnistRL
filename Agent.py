@@ -49,7 +49,7 @@ class Agent:
 
 
 Transition = namedtuple("Transition",
-                        field_names=["state", "action", "reward", "next_state", "done"])
+                        field_names=["state", "action", "reward", "next_state", "done","y_true"])
 
 
 class ReplayMemory(object):
@@ -69,7 +69,8 @@ class ReplayMemory(object):
              action: int,
              reward: int,
              next_state: np.ndarray,
-             done: bool) -> None:
+             done: bool,
+             true_label) -> None:
         """Creates `Transition` and insert
         Args:
             state (np.ndarray): 1-D tensor of shape (input_dim,)
@@ -82,7 +83,7 @@ class ReplayMemory(object):
             self.memory.append(None)
 
         self.memory[self.cursor] = Transition(state,
-                                              action, reward, next_state, done)
+                                              action, reward, next_state, done,true_label)
         self.cursor = (self.cursor + 1) % self.capacity
 
     def pop(self, batch_size: int = None) -> List[Transition]:

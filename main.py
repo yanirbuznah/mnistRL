@@ -54,12 +54,12 @@ def play_episode(env,
     while not done:
 
         a = agent.get_action(s, eps, mask)
-        s2, r, done, info = env.step(a)
+        s2, r, done, info,true_y = env.step(a)
         mask[a] = 0
 
         total_reward += r
 
-        replay_memory.push(s, a, r, s2, done)
+        replay_memory.push(s, a, r, s2, done,true_y)
 
         if len(replay_memory) > replay_memory.batch_size:
 
@@ -304,7 +304,7 @@ def val(i_episode: int,
             mask[action] = 0
 
             # take the action
-            state, reward, done, guess = env.step(action, mode='val')
+            state, reward, done, guess,_ = env.step(action, mode='val')
 
             if guess != -1:
                 y_hat_val[i] = torch.argmax(env.probs).item()
@@ -322,10 +322,9 @@ def val(i_episode: int,
         print(f'New best acc acheievd, saving best model {acc:0.4}')
         save_networks(i_episode, acc)
         save_networks(i_episode='best')
-
         return acc
-
     else:
+        print(f'\rlast validation accuracy: {acc:0.4}')
         return best_val_acc
 
 

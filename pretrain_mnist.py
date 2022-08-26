@@ -67,12 +67,18 @@ def main():
     # MNIST Dataset
     train_dataset = datasets.MNIST(root='./data/',
                                    train=True,
-                                   transform=transforms.ToTensor(),
+                                   transform=transforms.Compose([
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.1307,), (0.3081,))
+                                                            ]),
                                    download=True)
 
     test_dataset = datasets.MNIST(root='./data/',
                                   train=False,
-                                  transform=transforms.ToTensor())
+                                  transform=transforms.Compose([
+                                      transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))
+                                  ]))
 
     # Data Loader (Input Pipeline)
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,

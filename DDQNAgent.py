@@ -1,10 +1,8 @@
-from typing import List
-
 import numpy as np
 import torch
 from torch.optim import lr_scheduler
 
-from Agent import Agent, Transition
+from Agent import Agent
 from dqn import DQNAgent
 from dqn_parses import FLAGS
 
@@ -14,7 +12,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class DDQNAgent(Agent):
 
-    def __init__(self, input_dim: int, output_dim: int, hidden_dim: int,env,gamma) -> None:
+    def __init__(self, input_dim: int, output_dim: int, hidden_dim: int, env, gamma) -> None:
         """Agent class that choose action and train
         Args:
             input_dim (int): input dimension
@@ -130,12 +128,17 @@ class DDQNAgent(Agent):
             lr = self.optim.param_groups[0]['lr']
         # print('DQN learning rate = %.7f' % lr)
 
-    def train(self,minibatch):
+    def train(self, minibatch):
         states = np.vstack([x.state for x in minibatch])
         actions = np.array([x.action for x in minibatch])
+
         rewards = np.array([x.reward for x in minibatch])
+
         next_states = np.vstack([x.next_state for x in minibatch])
         done = np.array([x.done for x in minibatch])
+        y_true = np.array([x.y_true for x in minibatch])
+
+        self.update_rewards(rewards, done, states, y_true)
 
         Q_predict = self.get_Q(states)
         Q_target = Q_predict.clone().cpu().data.numpy()
@@ -146,10 +149,16 @@ class DDQNAgent(Agent):
 
         return self.train_on_sample(Q_predict, Q_target)
 
+    def update_rewards(self, rewards, done, states, y_true):
+        for i, d in enumerate(done):
+            if d:
+                _, probs = self.env.guesser(self._to_variable(states[i]))
+                rewards[i] = self.env.compute_guess_reward(probs,y_true[i])
+        return rewards
+
 
 
 def lambda_rule(i_episode) -> float:
     """ stepwise learning rate calculator """
     exponent = int(np.floor((i_episode + 1) / FLAGS.decay_step_size))
     return np.power(FLAGS.lr_decay_factor, exponent)
-

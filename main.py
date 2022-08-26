@@ -54,12 +54,12 @@ def play_episode(env,
     while not done:
 
         a = agent.get_action(s, eps, mask)
-        s2, r, done, info = env.step(a)
+        s2, r, done, info,y_true = env.step(a)
         mask[a] = 0
 
         total_reward += r
 
-        replay_memory.push(s, a, r, s2, done)
+        replay_memory.push(s, a, r, s2, done,y_true)
 
         if len(replay_memory) > replay_memory.batch_size:
 
@@ -115,18 +115,7 @@ def epsilon_annealing(episode: int, max_episode: int, min_eps: float) -> float:
 
 
 # define envurinment and agent (needed for main and test)
-env = Mnist_env(flags=FLAGS,
-                device=device)
-clear_threshold = 1.
 
-# define agent
-input_dim, output_dim = get_env_dim(env)
-agent = DDQNAgent(input_dim,
-              output_dim,
-              FLAGS.hidden_dim,env,FLAGS.gamma)
-
-agent.dqn.to(device=device)
-env.guesser.to(device=device)
 
 
 def save_networks(i_episode: int,
@@ -304,7 +293,7 @@ def val(i_episode: int,
             mask[action] = 0
 
             # take the action
-            state, reward, done, guess = env.step(action, mode='val')
+            state, reward, done, guess,_ = env.step(action, mode='val')
 
             if guess != -1:
                 y_hat_val[i] = torch.argmax(env.probs).item()
@@ -361,7 +350,7 @@ def test():
             mask[action] = 0
 
             # take the action
-            state, reward, done, guess = env.step(action, mode='test')
+            state, reward, done, guess,_ = env.step(action, mode='test')
 
             if guess != -1:
                 y_hat_test_prob[i] = torch.argmax(env.probs).item()
@@ -406,7 +395,7 @@ def view_images(nun_images=10, save=True):
             mask[action] = 0
             actions += [action]
             # take the action
-            state, reward, done, guess = env.step(action, mode='test')
+            state, reward, done, guess,_ = env.step(action, mode='test')
 
             if done:
                 break
@@ -426,7 +415,18 @@ def view_images(nun_images=10, save=True):
 
 
 if __name__ == '__main__':
+    env = Mnist_env(flags=FLAGS,
+                    device=device)
+    clear_threshold = 1.
 
+    # define agent
+    input_dim, output_dim = get_env_dim(env)
+    agent = DDQNAgent(input_dim,
+                      output_dim,
+                      FLAGS.hidden_dim, env, FLAGS.gamma)
+
+    agent.dqn.to(device=device)
+    env.guesser.to(device=device)
     main()
     test()
     view_images(10)

@@ -5,16 +5,16 @@ Created on Wed Nov 13 21:29:51 2019
 @author: urixs
 """
 
-import numpy as np
 import gzip
 import struct
-import os
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.model_selection import train_test_split
+
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
 from torchvision import datasets, transforms
 
 MNIST_PATH = "./data/MNIST/raw/"
+
 
 def load_data(case):
     if case == 122:  # 50 questions
@@ -47,35 +47,23 @@ def load_data(case):
 def load_mnist(case=1):
     train_dataset = datasets.MNIST(root='./data/',
                                    train=True,
-                                   transform=transforms.ToTensor(),
+                                   transform=transforms.Compose([
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.1307,), (0.3081,))
+                                   ]),
                                    download=True)
 
     test_dataset = datasets.MNIST(root='./data/',
                                   train=False,
-                                  transform=transforms.ToTensor())
+                                  transform=transforms.Compose([
+                                      transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))
+                                  ]))
 
-    if os.path.exists(MNIST_PATH + 'X_test.npy'):
-        X_test = np.load(MNIST_PATH + 'X_test.npy')
-    else:
-        X_test = read_idx(MNIST_PATH + 't10k-images-idx3-ubyte.gz')
-        X_test = X_test.reshape(-1, 28 * 28)
-        np.save(MNIST_PATH + 'X_test.npy', X_test)
-    if os.path.exists(MNIST_PATH + 'X_train.npy'):
-        X_train = np.load(MNIST_PATH + 'X_train.npy')
-    else:
-        X_train = read_idx(MNIST_PATH + 'train-images-idx3-ubyte.gz')
-        X_train = X_train.reshape(-1, 28 * 28)
-        np.save(MNIST_PATH + 'X_train.npy', X_train)
-    if os.path.exists(MNIST_PATH + 'y_test.npy'):
-        y_test = np.load(MNIST_PATH + 'y_test.npy')
-    else:
-        y_test = read_idx(MNIST_PATH + 't10k-labels-idx1-ubyte.gz')
-        np.save(MNIST_PATH + 'y_test.npy', y_test)
-    if os.path.exists(MNIST_PATH + 'y_train.npy'):
-        y_train = np.load(MNIST_PATH + 'y_train.npy')
-    else:
-        y_train = read_idx(MNIST_PATH + 'train-labels-idx1-ubyte.gz')
-        np.save(MNIST_PATH + 'y_train.npy', y_train)
+    X_train = np.array(train_dataset.data).reshape(-1, 28 * 28).astype(np.float)
+    X_test = np.array(test_dataset.data).reshape(-1, 28 * 28).astype(np.float)
+    y_train = np.array(train_dataset.targets)
+    y_test = np.array(test_dataset.targets)
 
     if case == 1:  # small version
         train_inds = y_train <= 2
@@ -85,8 +73,39 @@ def load_mnist(case=1):
         y_train = y_train[train_inds]
         y_test = y_test[test_inds]
 
-    # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
-    return X_train / 255., X_test / 255., y_train, y_test
+    return normalize(X_train), normalize(X_test),y_train, y_test
+    #
+    # if os.path.exists(MNIST_PATH + 'X_test.npy'):
+    #     X_test = np.load(MNIST_PATH + 'X_test.npy')
+    # else:
+    #     X_test = read_idx(MNIST_PATH + 't10k-images-idx3-ubyte.gz')
+    #     X_test = X_test.reshape(-1, 28 * 28)
+    #     np.save(MNIST_PATH + 'X_test.npy', X_test)
+    # if os.path.exists(MNIST_PATH + 'X_train.npy'):
+    #     X_train = np.load(MNIST_PATH + 'X_train.npy')
+    # else:
+    #     X_train = read_idx(MNIST_PATH + 'train-images-idx3-ubyte.gz')
+    #     X_train = X_train.reshape(-1, 28 * 28)
+    #     np.save(MNIST_PATH + 'X_train.npy', X_train)
+    # if os.path.exists(MNIST_PATH + 'y_test.npy'):
+    #     y_test = np.load(MNIST_PATH + 'y_test.npy')
+    # else:
+    #     y_test = read_idx(MNIST_PATH + 't10k-labels-idx1-ubyte.gz')
+    #     np.save(MNIST_PATH + 'y_test.npy', y_test)
+    # if os.path.exists(MNIST_PATH + 'y_train.npy'):
+    #     y_train = np.load(MNIST_PATH + 'y_train.npy')
+    # else:
+    #     y_train = read_idx(MNIST_PATH + 'train-labels-idx1-ubyte.gz')
+    #     np.save(MNIST_PATH + 'y_train.npy', y_train)
+    #
+    #
+    #
+    # # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
+    # return X_train / 255., X_test / 255., y_train, y_test
+
+
+def normalize(dataset, mean=0.1307, std=0.3081):
+    return (dataset - mean) / std
 
 
 def load_mi_scores():

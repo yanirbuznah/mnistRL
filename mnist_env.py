@@ -104,31 +104,23 @@ class Mnist_env(gym.Env):
         Resets 'train_guesser' flag
         """
 
-        self.state = np.concatenate([np.zeros(self.n_questions), np.zeros(self.n_questions)])
+        self.state = np.zeros(self.n_questions * 2)
 
-        if mode == 'training':
-            self.patient = np.random.randint(self.X_train.shape[0])
-        else:
-            self.patient = patient
+        self.patient = np.random.randint(self.X_train.shape[0]) if mode == 'training' else patient
+        self.y_true = self.y_train[self.patient]
 
         self.done = False
-        self.s = np.array(self.state)
         self.time = 0
-        if mode == 'training':
-            self.train_guesser = train_guesser
-        else:
-            self.train_guesser = False
-        return self.s
+
+        self.train_guesser = train_guesser if mode == 'training' else False
+        return self.state
 
     def reset_mask(self):
         """ A method that resets the mask that is applied
         to the q values, so that questions that were already
         asked will not be asked again.
         """
-        mask = torch.ones(self.n_questions + 1)
-        mask = mask.to(device=self.device)
-
-        return mask
+        return torch.ones(self.n_questions + 1).to(device=self.device)
 
     def step(self,
              action,
@@ -137,17 +129,15 @@ class Mnist_env(gym.Env):
 
         # update state
         next_state = self.update_state(action, mode)
-        self.state = np.array(next_state)
-        self.s = np.array(self.state)
 
         # compute reward
-        self.reward = self.compute_reward(mode)
+        reward = self.compute_reward(mode)
 
         self.time += 1
         if self.time == self.episode_length:
             self.terminate_episode()
 
-        return self.s, self.reward, self.done, self.guess
+        return next_state, reward, self.done, self.guess, self.y_true
 
     # Update 'done' flag when episode terminates
     def terminate_episode(self):
@@ -175,29 +165,31 @@ class Mnist_env(gym.Env):
             self.guesser.train(mode=False)
             self.logits, self.probs = self.guesser(guesser_input)
             self.guess = torch.argmax(self.probs.squeeze()).item()
-            if mode == 'training':
-                # store probability of true outcome for reward calculation
-                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item() # - torch.max(self.probs).item()
+
             self.terminate_episode()
 
-        return next_state
+        return np.array(next_state)
+
+    def compute_guess_reward(self, probs,y_true):
+        return probs.squeeze()[y_true].item()  # - torch.max(self.probs).item()
+
+
+
 
     def compute_reward(self, mode):
         """ Compute the reward """
 
         if mode == 'test':
             return None
-        if mode == 'training':
-            y_true = self.y_train[self.patient]
 
         if self.guess == -1:  # no guess was made
-            return (-1) *.01 * np.random.rand()
+            return (-1) * .01 * np.random.rand()
         else:
-            reward = self.correct_prob
+            reward = self.compute_guess_reward(self.probs,self.y_true)
         if self.train_guesser:
             # train guesser
             self.guesser.optimizer.zero_grad()
-            y = torch.Tensor([y_true]).long()
+            y = torch.Tensor([self.y_true]).long()
             y = y.to(device=self.device)
             self.guesser.train(mode=True)
             self.guesser.loss = self.guesser.criterion(self.logits, y)

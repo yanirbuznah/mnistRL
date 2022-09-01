@@ -6,6 +6,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
+from sklearn.metrics import confusion_matrix
 from torch import nn, optim
 from torch.distributions.categorical import  Categorical
 
@@ -289,6 +290,8 @@ clear_threshold = 1.
 input_dim, output_dim = get_env_dim(env)
 agent = PPOAgent(input_dim, output_dim,FLAGS,env)
 
+env.guesser.to(device=device)
+
 def main():
     """ Main """
 
@@ -358,6 +361,7 @@ def main():
         if n_steps % FLAGS.learning_cycles == 0:
             agent.learn()
             learn_iters += 1
+            best_val_acc = val(i,best_val_acc)
 
         # if i % FLAGS.val_interval == 0:
         #     # compute performance on validation set
@@ -380,5 +384,52 @@ def main():
         #     print('Did not achieve val acc improvement for {} trials, training is done.'.format(FLAGS.val_trials_wo_im))
         #     print(f"elapsed time: {time.time() - start_time} seconds")
         #     break
+
+def val(i_episode: int,
+        best_val_acc: float) -> float:
+    """ Compute performance on validation set and save current models """
+
+    print('\nRunning validation')
+    y_hat_val = np.zeros(len(env.y_val))
+
+    for i in range(len(env.X_val)):  # count(1)
+
+        ep_reward = 0
+        state = env.reset(mode='val',
+                          patient=i,
+                          train_guesser=False)
+        mask = env.reset_mask()
+
+        # run episode
+        for t in range(FLAGS.episode_length):
+            must_guess = t == FLAGS.episode_length - 1
+            # select action from policy
+            action, _ , __ = agent.get_action(state, mask=mask,must_guess=must_guess)
+            mask[action] = 0
+
+            # take the action
+            state, reward, done, guess,_ = env.step(action, mode='val')
+
+            if guess != -1:
+                y_hat_val[i] = torch.argmax(env.probs).item()
+
+            ep_reward += reward
+
+            if done:
+                break
+
+    confmat = confusion_matrix(env.y_val, y_hat_val)
+    acc = np.sum(np.diag(confmat)) / len(env.y_val)
+    # save_networks(i_episode, acc)
+
+    if acc > best_val_acc:
+        print(f'New best acc acheievd, saving best model {acc:0.4}')
+        # save_networks(i_episode, acc)
+        # save_networks(i_episode='best')
+        return acc
+    else:
+        print(f'\rlast validation accuracy: {acc:0.4}')
+        return best_val_acc
+
 
 main()

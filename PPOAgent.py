@@ -169,13 +169,14 @@ class PPOAgent(Agent):
         new_action_std = max(0.1, self.action_std * 0.99)
         self.action_var = torch.full((self.actions_space,), new_action_std * new_action_std).to(device)
 
-    def get_action(self, obs: np.ndarray):
+    def get_action(self, obs: np.ndarray,mask,must_guess=False):
         state = torch.tensor(obs, dtype=torch.float).to(device)
         # state = torch.tensor([obs], dtype=torch.float).to(device)
 
         dist = self.actor(state)
+        dist.probs *= mask
         value = self.critic(state)
-        action = dist.sample()
+        action = torch.tensor(self.actions_space - 1) if must_guess else dist.sample()
 
         probs = torch.squeeze(dist.log_prob(action)).item()
         action = torch.squeeze(action).item()
@@ -258,8 +259,9 @@ def play_episode(env,
     agent.set_action_std()
     t = 0
     while not done:
+        must_guess =  t + 1 == FLAGS.episode_length
+        action, prob, val =  agent.get_action(obs,mask,must_guess)
 
-        action, prob, val = agent.get_action(obs)
         obs_, reward, done, info,true_y = env.step(action)
         mask[action] = 0
 

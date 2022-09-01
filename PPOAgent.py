@@ -341,7 +341,7 @@ def main():
                             eps,
                             train_dqn=train_dqn,
                             train_guesser=train_guesser)
-
+        n_steps += 1
         # store rewards and episode length
         rewards.append(r)
         steps.append(t)

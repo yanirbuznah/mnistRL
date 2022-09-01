@@ -1,6 +1,6 @@
-import configargparse
+import argparse
 
-parser = configargparse.ArgumentParser(description="PPO args bidpedalHardcore")
+parser = argparse.ArgumentParser(description="PPO args bidpedalHardcore")
 parser.add_argument('--batch_size', type=int, default=256, help='Batch size')
 parser.add_argument('--learning_cycles', type=int, default=1e4, help='Number learning cycles')
 parser.add_argument('--epochs', type=int, default=4, help='Number of epochs per learning cycles')

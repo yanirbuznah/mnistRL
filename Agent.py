@@ -23,7 +23,7 @@ class Agent:
 
     def get_action(self, states: np.ndarray,
                    eps: float,
-                   mask: np.ndarray) -> int:
+                   mask: np.ndarray):
         """Returns an action
         Args:
             states (np.ndarray): 2-D tensor of shape (n, input_dim)
@@ -54,7 +54,7 @@ Transition = namedtuple("Transition",
 
 class ReplayMemory(object):
 
-    def __init__(self, capacity: int, batch_size=64) -> None:
+    def __init__(self, capacity: int = 1000000, batch_size:int=64) -> None:
         """Replay memory class
         Args:
             capacity (int): Max size of this memory

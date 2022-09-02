@@ -159,6 +159,15 @@ class Mnist_env(gym.Env):
 
     def update_state(self, action, mode):
         next_state = np.array(self.state)
+        guesser_input = self.guesser._to_variable(self.state.reshape(-1, 2 * self.n_questions))
+        if torch.cuda.is_available():
+            guesser_input = guesser_input.cuda()
+        self.guesser.train(mode=False)
+        self.logits, self.probs = self.guesser(guesser_input)
+        self.guess = torch.argmax(self.probs.squeeze()).item()
+        if mode == 'training':
+            # store probability of true outcome for reward calculation
+            self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item()  # - torch.max(self.probs).item()
 
         if action < self.n_questions:  # Not making a guess
             if mode == 'training':
@@ -168,20 +177,21 @@ class Mnist_env(gym.Env):
             elif mode == 'test':
                 next_state[action] = self.X_test[self.patient, action]
             next_state[action + self.n_questions] += 1.
-            self.guess = -1
-            self.done = False
 
-        else:  # Making a guess
-            # run guesser, and store guess and outcome probability
-            guesser_input = self.guesser._to_variable(self.state.reshape(-1, 2 * self.n_questions))
-            if torch.cuda.is_available():
-                guesser_input = guesser_input.cuda()
-            self.guesser.train(mode=False)
+            guesser_input = self.guesser._to_variable(next_state.reshape(-1, 2 * self.n_questions))
+
             self.logits, self.probs = self.guesser(guesser_input)
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':
                 # store probability of true outcome for reward calculation
-                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item() # - torch.max(self.probs).item()
+                self.correct_prob -= self.probs.squeeze()[self.y_train[self.patient]].item()  # - torch.max(self.probs).item()
+
+            self.done = False
+
+
+        else:  # Making a guess
+            # run guesser, and store guess and outcome probability
+
             self.terminate_episode()
 
         return next_state
@@ -194,10 +204,10 @@ class Mnist_env(gym.Env):
         if mode == 'training':
             self.true_y = self.y_train[self.patient]
 
-        if self.guess == -1:  # no guess was made
-            return .01 * np.random.rand()
-        else:
-            reward = self.correct_prob
+        # if self.guess == -1:  # no guess was made
+        #     return .01 * np.random.rand()
+        # else:
+        reward = self.correct_prob
         if self.train_guesser:
             # train guesser
             self.guesser.optimizer.zero_grad()

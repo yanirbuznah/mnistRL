@@ -2,8 +2,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description="PPO args bidpedalHardcore")
 parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
-parser.add_argument('--learning_cycles', type=int, default=1e2, help='Number learning cycles')
-parser.add_argument('--epochs', type=int, default=2, help='Number of epochs per learning cycles')
+parser.add_argument('--learning_cycles', type=int, default=2048, help='Number learning cycles')
+parser.add_argument('--epochs', type=int, default=10, help='Number of epochs per learning cycles')
 parser.add_argument('--buffer_size', type=int, default=2048,
                     help='Number of samples to generate on each learning cycle')
 parser.add_argument('--lr', type=float, default=0.00025, help='Learning rate')

@@ -1,8 +1,8 @@
 import argparse
 
 parser = argparse.ArgumentParser(description="PPO args bidpedalHardcore")
-parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
-parser.add_argument('--learning_cycles', type=int, default=2048, help='Number learning cycles')
+parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
+parser.add_argument('--learning_cycles', type=int, default=128, help='Number learning cycles')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs per learning cycles')
 parser.add_argument('--buffer_size', type=int, default=2048,
                     help='Number of samples to generate on each learning cycle')
@@ -10,7 +10,7 @@ parser.add_argument('--lr', type=float, default=0.00025, help='Learning rate')
 parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor')
 parser.add_argument('--policy_clip', type=float, default=0.1, help='Policy clip')
 # parser.add_argument('--update_factor',type = int, default = 2048, help = 'Update factor')
-parser.add_argument('--gae_lambda', type=float, default=0.99, help='Lambda')
+parser.add_argument('--gae_lambda', type=float, default=0.95, help='Lambda')
 parser.add_argument('--std', type=float, default=0.8, help='initial std')
 
 parser.add_argument("--ep_per_trainee",

@@ -30,7 +30,6 @@ import torch
 
 import utils
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Mnist_env(gym.Env):
     """ Questionnaire Environment class
@@ -73,7 +72,7 @@ class Mnist_env(gym.Env):
                                min_lr=flags.min_lr,
                                weight_decay=flags.g_weight_decay,
                                decay_step_size=12500,
-                               lr_decay_factor=0.1).to(device)
+                               lr_decay_factor=0.1).to(self.device)
 
         self.episode_length = episode_length
 
@@ -160,7 +159,7 @@ class Mnist_env(gym.Env):
 
     def update_state(self, action, mode):
         next_state = np.array(self.state)
-        guesser_input = self.guesser._to_variable(self.state.reshape(-1, 2 * self.n_questions)).to(device)
+        guesser_input = self.guesser._to_variable(self.state.reshape(-1, 2 * self.n_questions)).to(self.device)
         self.guesser.train(mode=False)
         self.logits, self.probs = self.guesser(guesser_input)
         self.guess = torch.argmax(self.probs.squeeze()).item()
@@ -176,7 +175,7 @@ class Mnist_env(gym.Env):
             elif mode == 'test':
                 next_state[action] = self.X_test[self.patient, action]
             next_state[action + self.n_questions] += 1.
-            guesser_input = self.guesser._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(device)
+            guesser_input = self.guesser._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
             self.logits, self.probs = self.guesser(guesser_input)
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':

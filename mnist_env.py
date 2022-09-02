@@ -7,6 +7,7 @@ Created on Sat Dec  7 21:49:57 2019
 Environment for MNIST
 
 """
+from gym.spaces import Discrete, Box
 
 from Guesser import Guesser
 
@@ -88,6 +89,9 @@ class Mnist_env(gym.Env):
         print('Initialized questionnaire environment')
 
         # Reset environment
+        self.action_space = Discrete(n = self.n_questions +1)
+        self.reward_range = tuple([-1.,1.])
+        self.observation_space = Box(-np.ones(2 * self.n_questions),np.ones(2 * self.n_questions))
 
     def reset(self,
               mode='training',

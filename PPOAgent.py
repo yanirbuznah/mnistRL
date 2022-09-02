@@ -177,7 +177,7 @@ class PPOAgent(Agent):
         dist = self.actor(state)
         dist.probs *= mask
         value = self.critic(state)
-        action = torch.tensor(self.actions_space - 1) if must_guess else dist.sample()
+        action = torch.tensor(self.actions_space - 1,device = device) if must_guess else dist.sample()
 
         probs = torch.squeeze(dist.log_prob(action)).item()
         action = torch.squeeze(action).item()

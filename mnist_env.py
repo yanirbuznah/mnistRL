@@ -177,9 +177,7 @@ class Mnist_env(gym.Env):
             elif mode == 'test':
                 next_state[action] = self.X_test[self.patient, action]
             next_state[action + self.n_questions] += 1.
-
             guesser_input = self.guesser._to_variable(next_state.reshape(-1, 2 * self.n_questions))
-
             self.logits, self.probs = self.guesser(guesser_input)
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':

@@ -21,8 +21,8 @@ from Agent import ReplayMemory, Agent
 from DDQNAgent import DDQNAgent
 from dqn import DQNAgent
 from dqn_parses import FLAGS
-from mnist_env import Guesser
-from mnist_env import Mnist_env
+# from mnist_env import Guesser
+from mnist_lstm import Mnist_env
 
 # set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -199,8 +199,8 @@ def main():
     """ Main """
 
     # delete model files from previous runs
-    if os.path.exists(FLAGS.save_dir):
-        env.guesser, agent.dqn = load_networks(i_episode='best')
+    # if os.path.exists(FLAGS.save_dir):
+    #     env.guesser, agent.dqn = load_networks(i_episode='best')
         # shutil.rmtree(FLAGS.save_dir)
 
     # store best result

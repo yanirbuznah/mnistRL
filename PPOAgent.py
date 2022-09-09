@@ -88,10 +88,10 @@ class ActorModel(nn.Module):
     def __init__(self, input_shape, actions_space, lr):
         super(ActorModel, self).__init__()
         self.actor = nn.Sequential(
-            nn.Linear(input_shape, 512),
-            nn.LeakyReLU(),
-            nn.Linear(512, 256),
-            nn.LeakyReLU(),
+            nn.Linear(input_shape, 256),
+            nn.PReLU(),
+            nn.Linear(256, 256),
+            nn.PReLU(),
             nn.Linear(256, actions_space),
             nn.Softmax(dim = -1)
         )
@@ -114,10 +114,10 @@ class CriticModel(nn.Module):
     def __init__(self, input_shape, actions_space, lr):
         super(CriticModel, self).__init__()
         self.critic = nn.Sequential(
-            nn.Linear(input_shape, 512),
-            nn.LeakyReLU(),
-            nn.Linear(512, 256),
-            nn.LeakyReLU(),
+            nn.Linear(input_shape, 256),
+            nn.PReLU(),
+            nn.Linear(256, 256),
+            nn.PReLU(),
             nn.Linear(256, 1),
         )
         self.to(device)
@@ -257,7 +257,7 @@ def play_episode(env,
     done = False
     total_reward = 0
     mask = env.reset_mask()
-    agent.set_action_std()
+    # agent.set_action_std()
     t = 0
     while not done:
         must_guess =  t + 1 == FLAGS.episode_length

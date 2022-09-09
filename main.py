@@ -268,8 +268,8 @@ def main():
             else:
                 val_trials_without_improvement += 1
 
-        if val_trials_without_improvement == int(FLAGS.val_trials_wo_im / 2):
-            env.guesser, agent.dqn = load_networks(i_episode='best')
+        # if val_trials_without_improvement == int(FLAGS.val_trials_wo_im / 2):
+        #     env.guesser, agent.dqn = load_networks(i_episode='best')
 
         # check whether to stop training
         if val_trials_without_improvement == FLAGS.val_trials_wo_im:

@@ -333,15 +333,17 @@ class Mnist_env(gym.Env):
             elif mode == 'test':
                 self.raw_state[0][action] = self.X_test[self.patient, action]
 
+            self.guess = -1
+        else:
         # input = self.net._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
-        self.logits, self.probs = self.net.pred(self.raw_state)
-        self.guess = torch.argmax(self.probs.squeeze()).item()
-        if mode == 'training':
-            # store probability of true outcome for reward calculation
-            self.correct_prob = self.probs.squeeze()[self.y_train[
-                self.patient]].item() #- self.correct_prob  # - torch.max(self.probs).item()
+            self.logits, self.probs = self.net.pred(self.raw_state)
+            self.guess = torch.argmax(self.probs.squeeze()).item()
+            if mode == 'training':
+                # store probability of true outcome for reward calculation
+                self.correct_prob = self.probs.squeeze()[self.y_train[
+                    self.patient]].item() #- self.correct_prob  # - torch.max(self.probs).item()
 
-            self.done = False
+                self.done = True
 
         return next_state
 

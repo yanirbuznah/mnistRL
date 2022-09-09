@@ -94,6 +94,7 @@ import utils
 #         return torch.autograd.Variable(torch.Tensor(x))
 #
 from Guesser import Guesser
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class LSTM(nn.Module):
@@ -113,8 +114,8 @@ class LSTM(nn.Module):
         return self.lstm(x, (self.lstm_h, self.lstm_c))
 
     def reset_states(self):
-        self.lstm_h = torch.zeros(1, self.state_dim)
-        self.lstm_c = torch.zeros(1, self.state_dim)
+        self.lstm_h = torch.zeros(1, self.state_dim).to(device)
+        self.lstm_c = torch.zeros(1, self.state_dim).to(device)
 
 class EnvNet(nn.Module):
     def __init__(self,input_dim,embedding_dim,state_dim,output_dim,mlp_hidden_dim = 256):
@@ -266,7 +267,7 @@ class Mnist_env(gym.Env):
         else:
             self.patient = patient
 
-        self.raw_state = torch.zeros((1,self.X_train[0].shape[0]))
+        self.raw_state = torch.zeros((1,self.X_train[0].shape[0])).to(device)
 
         self.done = False
         self.s = np.array(self.state)

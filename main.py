@@ -20,7 +20,7 @@ import utils
 from Agent import ReplayMemory, Agent
 from DDQNAgent import DDQNAgent
 from dqn import DQNAgent
-from dqn_parses import FLAGS
+from lstm_parses import FLAGS
 # from mnist_env import Guesser
 from mnist_lstm import Mnist_env
 
@@ -121,12 +121,12 @@ clear_threshold = 1.
 
 # define agent
 input_dim, output_dim = get_env_dim(env)
-agent = DDQNAgent(input_dim,
+agent = DDQNAgent(FLAGS.state_dim,
               output_dim,
               FLAGS.hidden_dim,env,FLAGS.gamma)
 
 agent.dqn.to(device=device)
-env.guesser.to(device=device)
+env.net.to(device=device)
 
 
 def save_networks(i_episode: int,
@@ -148,8 +148,8 @@ def save_networks(i_episode: int,
     # save guesser
     if os.path.exists(guesser_save_path):
         os.remove(guesser_save_path)
-    torch.save(env.guesser.cpu().state_dict(), guesser_save_path + '~')
-    env.guesser.to(device=device)
+    torch.save(env.net.cpu().state_dict(), guesser_save_path + '~')
+    env.net.to(device=device)
     os.rename(guesser_save_path + '~', guesser_save_path)
 
     # save dqn

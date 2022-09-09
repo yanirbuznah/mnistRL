@@ -139,7 +139,7 @@ class DDQNAgent(Agent):
 
         y_true = np.array([x.y_true for x in minibatch])
 
-        self.update_rewards(rewards, done, states, y_true)
+        # self.update_rewards(rewards, done, states, y_true)
 
 
         Q_predict = self.get_Q(states)
@@ -154,7 +154,7 @@ class DDQNAgent(Agent):
     def update_rewards(self, rewards, done, states, y_true):
         for i, d in enumerate(done):
             if d:
-                _, probs = self.env.guesser(self._to_variable(states[i]).to(device))
+                _, probs = self.env.net(self._to_variable(states[i]).to(device))
                 rewards[i] = probs.squeeze()[y_true[i]].item()
         return rewards
 

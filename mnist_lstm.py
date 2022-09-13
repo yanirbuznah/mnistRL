@@ -132,9 +132,9 @@ class EnvNet(nn.Module):
 
     def forward(self, question, answer):
         self.train()
-        question = torch.LongTensor([question],device=device)
+        question = torch.LongTensor([question]).to(device=device)
         embedding = self.embedding(question)
-        answer = torch.unsqueeze(torch.ones(self.embedding_dim) * answer, 0)
+        answer = torch.unsqueeze(torch.ones(self.embedding_dim) * answer, 0).to(device=device)
         x = torch.cat((embedding, answer), dim=-1)  # TODO: try use + instead cat
         h, _ = self.lstm(x)
         logits, probs = self.mlp(h)
@@ -142,9 +142,9 @@ class EnvNet(nn.Module):
 
     def pred(self, question, answer):
         self.eval()
-        question = torch.LongTensor([question],device=device)
+        question = torch.LongTensor([question]).to(device)
         embedding = self.embedding(question)
-        answer = torch.FloatTensor(answer,device=device)
+        answer = torch.FloatTensor(answer).to(device=device)
         x = torch.cat((embedding, answer), dim=-1)  # TODO: try use + instead cat
         h, _ = self.lstm.pred(x)
         logits, probs = self.mlp(h)

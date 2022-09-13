@@ -9,15 +9,14 @@ Environment for questionnaire
 """
 import os
 
+import gym
 import numpy as np
+import torch
+import torch.nn as nn
 from gym.spaces import Discrete, Box
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.model_selection import train_test_split
-import gym
-import torch
-import torch.nn as nn
-from torch.optim import lr_scheduler
-import torch.nn.functional as F
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 import utils
@@ -98,18 +97,17 @@ from Guesser import Guesser
 
 
 class LSTM(nn.Module):
-    def __init__(self,embedding_dim,state_dim):
+    def __init__(self, embedding_dim, state_dim):
         super().__init__()
         self.state_dim = state_dim
         self.lstm = nn.LSTMCell(input_size=embedding_dim, hidden_size=state_dim)
         self.reset_states()
 
-
     def forward(self, x):
         self.lstm_h, self.lstm_c = self.lstm(x, (self.lstm_h, self.lstm_c))
-        return self.lstm_h,self.lstm_c
+        return self.lstm_h, self.lstm_c
 
-    def pred(self,x):
+    def pred(self, x):
         self.eval()
         return self.lstm(x, (self.lstm_h, self.lstm_c))
 
@@ -117,37 +115,43 @@ class LSTM(nn.Module):
         self.lstm_h = torch.zeros(1, self.state_dim).to(device)
         self.lstm_c = torch.zeros(1, self.state_dim).to(device)
 
+
 class EnvNet(nn.Module):
-    def __init__(self,input_dim,embedding_dim,state_dim,output_dim,mlp_hidden_dim = 256):
+    def __init__(self, input_dim, embedding_dim, state_dim, output_dim, mlp_hidden_dim=256):
         super().__init__()
-        # self.embedding = nn.Embedding(num_embeddings=input_dim,
-        #                               embedding_dim=embedding_dim)
-        self.lstm = LSTM(input_dim,state_dim)
-        self.mlp = Guesser(state_dim=state_dim,hidden_dim=mlp_hidden_dim,
+        self.embedding = nn.Embedding(num_embeddings=input_dim + 1,
+                                      embedding_dim=embedding_dim)
+        self.embedding_dim = embedding_dim
+        self.lstm = LSTM(embedding_dim * 2, state_dim)
+        self.mlp = Guesser(state_dim=state_dim, hidden_dim=mlp_hidden_dim,
                            num_classes=output_dim)
 
         self.optimizer = torch.optim.Adam(self.parameters())
 
         self.criterion = nn.CrossEntropyLoss()
 
-
-    def forward(self,x):
+    def forward(self, question, answer):
         self.train()
-        # embedding = self.embedding(x)
-        h,_ = self.lstm(x)
-        logits,probs = self.mlp(h)
-        return logits,probs
+        question = torch.LongTensor([question],device=device)
+        embedding = self.embedding(question)
+        answer = torch.unsqueeze(torch.ones(self.embedding_dim) * answer, 0)
+        x = torch.cat((embedding, answer), dim=-1)  # TODO: try use + instead cat
+        h, _ = self.lstm(x)
+        logits, probs = self.mlp(h)
+        return h, logits, probs
 
-    def pred(self,x):
+    def pred(self, question, answer):
         self.eval()
-        # embedding = self.embedding(x)
-        h,_ = self.lstm.pred(x)
-        logits,probs = self.mlp(h)
-        return logits,probs
+        question = torch.LongTensor([question],device=device)
+        embedding = self.embedding(question)
+        answer = torch.FloatTensor(answer,device=device)
+        x = torch.cat((embedding, answer), dim=-1)  # TODO: try use + instead cat
+        h, _ = self.lstm.pred(x)
+        logits, probs = self.mlp(h)
+        return h, logits, probs
 
     def reset(self):
         self.lstm.reset_states()
-
 
     def _to_variable(self, x: np.ndarray) -> torch.Tensor:
         """torch.Variable syntax helper
@@ -158,7 +162,7 @@ class EnvNet(nn.Module):
         """
         return torch.autograd.Variable(torch.Tensor(x))
 
-    def save_network(self,i_episode, save_dir,acc=None):
+    def save_network(self, i_episode, save_dir, acc=None):
         """ A function that saves the gesser params"""
 
         if not os.path.exists(save_dir):
@@ -178,6 +182,7 @@ class EnvNet(nn.Module):
 
         os.rename(guesser_save_path + '~', guesser_save_path)
 
+
 class Mnist_env(gym.Env):
     """ Questionnaire Environment class
        Args:
@@ -195,7 +200,6 @@ class Mnist_env(gym.Env):
         case = flags.case
         episode_length = flags.episode_length
         self.device = device
-
 
         # Load data
         self.n_questions = 28 * 28
@@ -219,7 +223,8 @@ class Mnist_env(gym.Env):
         scores = np.append(mi, .1)
         self.action_probs = scores / np.sum(scores)
 
-        self.net = EnvNet(self.n_questions , flags.embedding, flags.state_dim,output_dim=10,mlp_hidden_dim=flags.g_hidden_dim)
+        self.net = EnvNet(self.n_questions, flags.embedding, flags.state_dim, output_dim=10,
+                          mlp_hidden_dim=flags.g_hidden_dim)
         self.episode_length = episode_length
 
         # Load pre-trained guesser network, if needed
@@ -233,7 +238,6 @@ class Mnist_env(gym.Env):
                 self.net.load_state_dict(guesser_state_dict)
         self.net.predict = False
         print('Initialized questionnaire environment')
-
 
         self.lstm_loss = None
 
@@ -259,6 +263,7 @@ class Mnist_env(gym.Env):
         # Reset state
         self.net.reset()
 
+        self.last_probs = 0
 
         self.state = self.net.lstm.lstm_h.data.cpu().numpy()
 
@@ -267,7 +272,7 @@ class Mnist_env(gym.Env):
         else:
             self.patient = patient
 
-        self.raw_state = torch.zeros((1,self.X_train[0].shape[0])).to(device)
+        self.raw_state = torch.zeros((1, self.X_train[0].shape[0])).to(device)
 
         self.done = False
         self.s = np.array(self.state)
@@ -295,7 +300,7 @@ class Mnist_env(gym.Env):
 
         # update state
         next_state = self.update_state(action, mode)
-        self.state = np.array(next_state)
+        self.raw_state = torch.Tensor(next_state)
         self.s = np.array(self.state)
 
         '''        
@@ -316,35 +321,32 @@ class Mnist_env(gym.Env):
         self.done = True
 
     def update_state(self, action, mode):
-        next_state = np.array(self.state)
-        # input = self.net._to_variable(self.state.reshape(-1, 2 * self.n_questions)).to(self.device)
-        #
-        # self.logits, self.probs = self.net(self.raw_state)
-        # self.guess = torch.argmax(self.probs.squeeze()).item()
-        # if mode == 'training':
-        #     # store probability of true outcome for reward calculation
-        #     self.correct_prob = self.probs.squeeze()[
-        #         self.y_train[self.patient]].item()  # - torch.max(self.probs).item()
 
-        if action < self.n_questions:  # Not making a guess
+        if action < self.n_questions:  # we are not making a guess
             if mode == 'training':
-                self.raw_state[0][action] = self.X_train[self.patient, action]
+                answer = self.X_train[self.patient, action]
             elif mode == 'val':
-                self.raw_state[0][action] = self.X_val[self.patient, action]
+                answer = self.X_val[self.patient, action]
             elif mode == 'test':
-                self.raw_state[0][action] = self.X_test[self.patient, action]
-
+                answer = self.X_test[self.patient, action]
+            next_state, self.logits, self.probs = self.net(action, answer)
+            next_state = next_state.data.cpu().numpy()
             self.guess = -1
-        else:
-        # input = self.net._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
-            self.logits, self.probs = self.net.pred(self.raw_state)
+            self.done = False
+        else:  # making a guess
+            # "dummy" forward in case a guess was made at first step, to fill buffers
+            if self.time == 0:
+                _, self.logits, self.probs = self.net(question=self.n_questions, answer=0)
             self.guess = torch.argmax(self.probs.squeeze()).item()
-            if mode == 'training':
-                # store probability of true outcome for reward calculation
-                self.correct_prob = self.probs.squeeze()[self.y_train[
-                    self.patient]].item() #- self.correct_prob  # - torch.max(self.probs).item()
 
-                self.done = True
+            self.terminate_episode()
+            next_state = self.state
+
+        # self.outcome_prob = self.probs.squeeze()[1].item()
+        if mode == 'training':
+            self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item()
+        if mode == 'val':
+            self.correct_prob = self.probs.squeeze()[self.y_val[self.patient]].item()
 
         return next_state
 
@@ -365,7 +367,7 @@ class Mnist_env(gym.Env):
             self.net.optimizer.zero_grad()
             y = torch.Tensor([self.true_y]).long()
             y = y.to(device=self.device)
-            self.net.train(mode=True)
+            # self.net.train(mode=True)
             loss = self.net.criterion(self.logits, y)
 
             loss.backward()

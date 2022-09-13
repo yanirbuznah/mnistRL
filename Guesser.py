@@ -30,6 +30,11 @@ class Guesser(nn.Module):
         self.state_dim = state_dim
         self.min_lr = min_lr
         self.pretrain = pretrain
+        self.conv = torch.nn.Sequential(
+            torch.nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(2, 1)),
+            torch.nn.PReLU()
+        )
+
         self.layer1 = torch.nn.Sequential(
             torch.nn.Linear(state_dim, hidden_dim),
             torch.nn.PReLU(),
@@ -48,7 +53,7 @@ class Guesser(nn.Module):
         # output layer
         self.logits = nn.Linear(hidden_dim, num_classes)
 
-        self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.Softmax(dim=-1)
 
         self.criterion = nn.CrossEntropyLoss()
 
@@ -62,15 +67,17 @@ class Guesser(nn.Module):
         self.p = 1.
 
     def forward(self, x):
-        x = x.view(-1,self.state_dim)
-        if self.pretrain and self.p > 0.:
-            x = self.modified_dropout(x)
+
+        # if self.pretrain and self.p > 0.:
+        # x = self.modified_dropout(x)
+        # print
 
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
 
         logits = self.logits(x)
+        # print(logits.shape)
         probs = self.softmax(logits)
 
         return logits, probs

@@ -300,7 +300,7 @@ class Mnist_env(gym.Env):
 
         # update state
         next_state = self.update_state(action, mode)
-        self.raw_state = torch.Tensor(next_state)
+        self.state = torch.Tensor(next_state)
         self.s = np.array(self.state)
 
         '''        

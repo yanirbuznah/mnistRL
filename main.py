@@ -332,7 +332,8 @@ def test():
     """ Computes performance nad test data """
 
     print('Loading best networks')
-    env.guesser, agent.dqn = load_networks(i_episode='best')
+    #TODO: add load networks functionality
+    # env.guesser, agent.dqn = load_networks(i_episode='best')
     # env.guesser, agent.dqn = load_networks(i_episode='best', avg_reward = )
 
     # predict outcome on test data

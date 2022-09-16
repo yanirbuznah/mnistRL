@@ -96,8 +96,8 @@ def load_mnist(case=1):
     X_test = TensorDataset(torch.Tensor(X_test/255.))
     ae = AutoEncoder(output_dim=50).to(device)
     ae.train_autoencoder(DataLoader(X_train,batch_size=64))
-    X_train = [ae.forward_encoder(x[0]) for x in X_train]
-    X_test = [ae.forward_encoder(x[0]) for x in X_test]
+    X_train = [ae.forward_encoder(x[0].to(device)) for x in X_train]
+    X_test = [ae.forward_encoder(x[0].to(device)) for x in X_test]
     X_train = torch.cat(X_train,dim=0).reshape(-1,50).detach().numpy()
     X_test = torch.cat(X_test,dim=0).reshape(-1,50).detach().numpy()
 

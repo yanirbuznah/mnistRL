@@ -5,7 +5,7 @@ import numpy as np
 # torch.manual_seed(1)    # reproducible
 
 # Hyper Parameters
-EPOCH = 1
+EPOCH = 10
 BATCH_SIZE = 64
 # learning rate
 

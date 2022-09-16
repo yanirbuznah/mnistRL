@@ -16,6 +16,10 @@ import torch.nn as nn
 from gym.spaces import Discrete, Box
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+from torch.utils.data.dataset import Dataset, TensorDataset
+
+from AutoEncoder import AutoEncoder
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -202,7 +206,7 @@ class Mnist_env(gym.Env):
         self.device = device
 
         # Load data
-        self.n_questions = 28 * 28
+        self.n_questions = 50
         # Reset environment
         self.action_space = Discrete(n=self.n_questions + 1)
         self.reward_range = tuple([-1., 1.])
@@ -213,6 +217,11 @@ class Mnist_env(gym.Env):
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
                                                                               self.y_train,
                                                                               test_size=0.017)
+
+        # self.autoencoder = AutoEncoder()
+        # train_loader = DataLoader(TensorDataset(torch.Tensor(self.X_train)),batch_size=16)
+        # self.autoencoder.train_autoencoder(train_loader)
+
 
         # Load / compute mutual information of each pixel with target
         mi = utils.load_mi_scores()

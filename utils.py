@@ -5,16 +5,21 @@ Created on Wed Nov 13 21:29:51 2019
 @author: urixs
 """
 
-import numpy as np
 import gzip
-import struct
 import os
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.model_selection import train_test_split
+import struct
+
+import numpy as np
+import torch
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
+from torch.utils.data import TensorDataset, DataLoader
 from torchvision import datasets, transforms
 
+from AutoEncoder import AutoEncoder
+
 MNIST_PATH = "./data/MNIST/raw/"
+
 
 def load_data(case):
     if case == 122:  # 50 questions
@@ -85,11 +90,20 @@ def load_mnist(case=1):
         y_train = y_train[train_inds]
         y_test = y_test[test_inds]
 
+    X_train = TensorDataset(torch.Tensor(X_train/255.))
+    X_test = TensorDataset(torch.Tensor(X_test/255.))
+    ae = AutoEncoder(output_dim=50)
+    ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+    X_train = [ae.forward_encoder(x[0]) for x in X_train]
+    X_test = [ae.forward_encoder(x[0]) for x in X_test]
+    X_train = torch.cat(X_train,dim=0).reshape(-1,50).detach().numpy()
+    X_test = torch.cat(X_test,dim=0).reshape(-1,50).detach().numpy()
+
     # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
-    return X_train / 255., X_test / 255., y_train, y_test
+    return X_train, X_test, y_train, y_test
 
 
-def load_mi_scores():
+def load_mi_scores(data = None):
     '''
     if os.path.exists(MNIST_PATH + 'mi.npy'):
         print('Loading stored mutual information scores')
@@ -97,7 +111,7 @@ def load_mi_scores():
     else:
         return None
     '''
-    X_train, X_test, y_train, y_test = load_mnist(case=2)
+    X_train, X_test, y_train, y_test = load_mnist(case=2) if data is None else data
     max_depth = 5
 
     # define a decision tree classifier

@@ -8,7 +8,9 @@ Environment for MNIST
 
 """
 from gym.spaces import Discrete, Box
+from torch.utils.data import DataLoader
 
+from AutoEncoder import AutoEncoder
 from Guesser import Guesser
 
 # -*- coding: utf-8 -*-
@@ -57,8 +59,9 @@ class Mnist_env(gym.Env):
                                                                               self.y_train,
                                                                               test_size=0.017)
 
+
         # Load / compute mutual information of each pixel with target
-        mi = utils.load_mi_scores()
+        mi = utils.load_mi_scores(data = (self.X_train, self.X_test, self.y_train, self.y_test))
         if mi is None:
             print('Computing mutual information of each pixel with target')
             mi = mutual_info_classif(self.X_train, self.y_train)

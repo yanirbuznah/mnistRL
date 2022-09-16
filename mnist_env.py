@@ -53,7 +53,7 @@ class Mnist_env(gym.Env):
 
         # Load data
         self.n_questions = 28 * 28
-        self.X_train, self.X_test, self.y_train, self.y_test = utils.load_mnist(case=case)
+        mi,self.X_train, self.X_test, self.y_train, self.y_test = utils.load_mi_scores()
 
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
                                                                               self.y_train,
@@ -61,7 +61,6 @@ class Mnist_env(gym.Env):
 
 
         # Load / compute mutual information of each pixel with target
-        mi = utils.load_mi_scores(data = (self.X_train, self.X_test, self.y_train, self.y_test))
         if mi is None:
             print('Computing mutual information of each pixel with target')
             mi = mutual_info_classif(self.X_train, self.y_train)

@@ -19,6 +19,8 @@ from torchvision import datasets, transforms
 from AutoEncoder import AutoEncoder
 
 MNIST_PATH = "./data/MNIST/raw/"
+# set device
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def load_data(case):
@@ -92,7 +94,7 @@ def load_mnist(case=1):
 
     X_train = TensorDataset(torch.Tensor(X_train/255.))
     X_test = TensorDataset(torch.Tensor(X_test/255.))
-    ae = AutoEncoder(output_dim=50)
+    ae = AutoEncoder(output_dim=50).to(device)
     ae.train_autoencoder(DataLoader(X_train,batch_size=64))
     X_train = [ae.forward_encoder(x[0]) for x in X_train]
     X_test = [ae.forward_encoder(x[0]) for x in X_test]
@@ -103,7 +105,7 @@ def load_mnist(case=1):
     return X_train, X_test, y_train, y_test
 
 
-def load_mi_scores(data = None):
+def load_mi_scores(X_train, y_train):
     '''
     if os.path.exists(MNIST_PATH + 'mi.npy'):
         print('Loading stored mutual information scores')
@@ -111,7 +113,6 @@ def load_mi_scores(data = None):
     else:
         return None
     '''
-    X_train, X_test, y_train, y_test = load_mnist(case=2) if data is None else data
     max_depth = 5
 
     # define a decision tree classifier

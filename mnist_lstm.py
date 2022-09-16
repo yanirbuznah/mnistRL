@@ -224,7 +224,7 @@ class Mnist_env(gym.Env):
 
 
         # Load / compute mutual information of each pixel with target
-        mi = utils.load_mi_scores()
+        mi = utils.load_mi_scores(self.X_train, self.y_train)
         if mi is None:
             print('Computing mutual information of each pixel with target')
             mi = mutual_info_classif(self.X_train, self.y_train)

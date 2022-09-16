@@ -5,11 +5,12 @@ import numpy as np
 # torch.manual_seed(1)    # reproducible
 
 # Hyper Parameters
-EPOCH = 10
+EPOCH = 1
 BATCH_SIZE = 64
 # learning rate
 
-
+# set device
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class AutoEncoder(nn.Module):
     def __init__(self,output_dim = 50):
@@ -40,14 +41,15 @@ class AutoEncoder(nn.Module):
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return encoded, decoded
+
     def forward_encoder(self, x):
         return self.encoder(x)
 
     def train_autoencoder(self,train_loader,loss_func = nn.MSELoss()):
         for epoch in range(EPOCH):
             for step, (x,) in enumerate(train_loader):
-                b_x = x.view(-1, 28*28)   # batch x, shape (batch, 28*28)
-                b_y = x.view(-1, 28*28)   # batch y, shape (batch, 28*28)
+                b_x = x.view(-1, 28*28).to(device)   # batch x, shape (batch, 28*28)
+                b_y = x.view(-1, 28*28).to(device)  # batch y, shape (batch, 28*28)
 
                 encoded, decoded = self(b_x)
 

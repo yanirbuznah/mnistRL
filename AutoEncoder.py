@@ -59,6 +59,6 @@ class AutoEncoder(nn.Module):
                 self.optimizer.step()                    # apply gradients
 
                 if step % 100 == 0:
-                    print(f'\rAutoEncoder - Epoch: {epoch} | Step: {step}\{len(train_loader)} | Train loss: {loss.data.numpy():.4f}', end='')
+                    print(f'\rAutoEncoder - Epoch: {epoch} | Step: {step}\{len(train_loader)} | Train loss: {loss.data.cpu().numpy():.4f}', end='')
 
         print('\n')

@@ -107,7 +107,7 @@ parser.add_argument("--masked_images_dir",
                     help="Directory for saved masked images")
 parser.add_argument("--gamma",
                     type=float,
-                    default=0.9,
+                    default=0.99,
                     help="Discount rate for Q_target")
 parser.add_argument("--n_update_target_dqn",
                     type=int,
@@ -123,7 +123,7 @@ parser.add_argument("--ep_per_trainee",
                     help="Switch between training dqn and guesser every this # of episodes")
 parser.add_argument("--batch_size",
                     type=int,
-                    default=64,
+                    default=16,
                     help="Mini-batch size")
 parser.add_argument("--hidden-dim",
                     type=int,
@@ -135,7 +135,7 @@ parser.add_argument("--capacity",
                     help="Replay memory capacity")
 parser.add_argument("--max-episode",
                     type=int,
-                    default=20000,
+                    default=200000,
                     help="e-Greedy target episode (eps will be the lowest at this episode)")
 parser.add_argument("--min-eps",
                     type=float,
@@ -180,7 +180,7 @@ parser.add_argument("--env",
 # Environment params
 parser.add_argument("--g_hidden-dim",
                     type=int,
-                    default=512,
+                    default=128,
                     help="Guesser hidden dimension")
 parser.add_argument("--g_weight_decay",
                     type=float,

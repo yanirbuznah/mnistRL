@@ -290,7 +290,7 @@ clear_threshold = 1.
 input_dim, output_dim = get_env_dim(env)
 agent = PPOAgent(input_dim, output_dim,FLAGS,env)
 
-env.guesser.to(device=device)
+env.net.to(device=device)
 
 def main():
     """ Main """

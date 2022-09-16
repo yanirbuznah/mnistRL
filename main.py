@@ -20,9 +20,9 @@ import utils
 from Agent import ReplayMemory, Agent
 from DDQNAgent import DDQNAgent
 from dqn import DQNAgent
-from lstm_parses import FLAGS
+from dqn_parses import FLAGS
 # from mnist_env import Guesser
-from mnist_lstm import Mnist_env
+from mnist_env import Mnist_env
 
 # set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -121,7 +121,7 @@ clear_threshold = 1.
 
 # define agent
 input_dim, output_dim = get_env_dim(env)
-agent = DDQNAgent(FLAGS.state_dim,
+agent = DDQNAgent(input_dim,
               output_dim,
               FLAGS.hidden_dim,env,FLAGS.gamma)
 
@@ -381,7 +381,7 @@ def test():
 
 def view_images(nun_images=10, save=True):
     print('Loading best networks')
-    env.guesser, agent.dqn = load_networks(i_episode='best')
+    env.net, agent.dqn = load_networks(i_episode='best')
 
     # delete model files from previous runs
     if os.path.exists(FLAGS.masked_images_dir):

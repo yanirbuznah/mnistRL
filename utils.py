@@ -51,7 +51,7 @@ def load_data(case):
     return X, y, question_names, class_names, scaler
 
 
-def load_mnist(case=1):
+def load_mnist(case=2):
     train_dataset = datasets.MNIST(root='./data/',
                                    train=True,
                                    transform=transforms.ToTensor(),

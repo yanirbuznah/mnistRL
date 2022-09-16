@@ -52,15 +52,15 @@ class Mnist_env(gym.Env):
         self.device = device
 
         # Load data
-        self.n_questions = 28 * 28
-        mi,self.X_train, self.X_test, self.y_train, self.y_test = utils.load_mi_scores()
+        self.n_questions = 50
+        self.X_train, self.X_test, self.y_train, self.y_test = utils.load_mnist()
 
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
                                                                               self.y_train,
                                                                               test_size=0.017)
 
-
         # Load / compute mutual information of each pixel with target
+        mi = utils.load_mi_scores(self.X_train,self.y_train)
         if mi is None:
             print('Computing mutual information of each pixel with target')
             mi = mutual_info_classif(self.X_train, self.y_train)
@@ -68,13 +68,13 @@ class Mnist_env(gym.Env):
         scores = np.append(mi, .1)
         self.action_probs = scores / np.sum(scores)
 
-        self.guesser = Guesser(state_dim=2 * self.n_questions,
-                               hidden_dim=flags.g_hidden_dim,
-                               lr=flags.lr,
-                               min_lr=flags.min_lr,
-                               weight_decay=flags.g_weight_decay,
-                               decay_step_size=12500,
-                               lr_decay_factor=0.1).to(self.device)
+        self.net = Guesser(state_dim=2 * self.n_questions,
+                           hidden_dim=flags.g_hidden_dim,
+                           lr=flags.lr,
+                           min_lr=flags.min_lr,
+                           weight_decay=flags.g_weight_decay,
+                           decay_step_size=12500,
+                           lr_decay_factor=0.1).to(self.device)
 
         self.episode_length = episode_length
 
@@ -86,8 +86,8 @@ class Mnist_env(gym.Env):
             if os.path.exists(guesser_load_path):
                 print('Loading pre-trained guesser')
                 guesser_state_dict = torch.load(guesser_load_path)
-                self.guesser.load_state_dict(guesser_state_dict)
-        self.guesser.predict = False
+                self.net.load_state_dict(guesser_state_dict)
+        self.net.predict = False
         print('Initialized questionnaire environment')
 
         # Reset environment
@@ -161,9 +161,9 @@ class Mnist_env(gym.Env):
 
     def update_state(self, action, mode):
         next_state = np.array(self.state)
-        guesser_input = self.guesser._to_variable(self.state.reshape(-1, 2 * self.n_questions)).to(self.device)
-        self.guesser.train(mode=False)
-        self.logits, self.probs = self.guesser(guesser_input)
+        guesser_input = self.net._to_variable(self.state.reshape(-1, 2 * self.n_questions)).to(self.device)
+        self.net.train(mode=False)
+        self.logits, self.probs = self.net(guesser_input)
         self.guess = torch.argmax(self.probs.squeeze()).item()
         if mode == 'training':
             # store probability of true outcome for reward calculation
@@ -177,8 +177,8 @@ class Mnist_env(gym.Env):
             elif mode == 'test':
                 next_state[action] = self.X_test[self.patient, action]
             next_state[action + self.n_questions] += 1.
-            guesser_input = self.guesser._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
-            self.logits, self.probs = self.guesser(guesser_input)
+            guesser_input = self.net._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
+            self.logits, self.probs = self.net(guesser_input)
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':
                 # store probability of true outcome for reward calculation
@@ -208,14 +208,14 @@ class Mnist_env(gym.Env):
         reward = self.correct_prob
         if self.train_guesser:
             # train guesser
-            self.guesser.optimizer.zero_grad()
+            self.net.optimizer.zero_grad()
             y = torch.Tensor([self.true_y]).long()
             y = y.to(device=self.device)
-            self.guesser.train(mode=True)
-            self.guesser.loss = self.guesser.criterion(self.logits, y)
-            self.guesser.loss.backward()
-            self.guesser.optimizer.step()
+            self.net.train(mode=True)
+            self.net.loss = self.net.criterion(self.logits, y)
+            self.net.loss.backward()
+            self.net.optimizer.step()
             # update learning rate
-            self.guesser.update_learning_rate()
+            self.net.update_learning_rate()
 
         return reward

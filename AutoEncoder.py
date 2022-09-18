@@ -49,7 +49,7 @@ class AutoEncoder(nn.Module):
 
     def train_autoencoder(self,train_loader,loss_func = nn.MSELoss()):
         for epoch in range(EPOCH):
-            for step, (x,) in enumerate(train_loader):
+            for step, (x,_) in enumerate(train_loader):
                 b_x = x.view(-1, 28*28).to(device)   # batch x, shape (batch, 28*28)
                 b_y = x.view(-1, 28*28).to(device)  # batch y, shape (batch, 28*28)
 

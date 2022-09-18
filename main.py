@@ -306,7 +306,7 @@ def val(i_episode: int,
             mask[action] = 0
 
             # take the action
-            state, reward, done, guess,_ = env.step(action, mode='val')
+            state, reward, done, guess = env.step(action, mode='val')
 
             if guess != -1:
                 y_hat_val[i] = torch.argmax(env.probs).item()

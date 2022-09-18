@@ -11,6 +11,7 @@ import struct
 
 import numpy as np
 import torch
+import torchvision
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
 from torch.utils.data import TensorDataset, DataLoader
@@ -51,7 +52,7 @@ def load_data(case):
     return X, y, question_names, class_names, scaler
 
 
-def load_mnist(case=2,load_model=True):
+def load_mnist(case=2,load_model=False):
     train_dataset = datasets.MNIST(root='./data/',
                                    train=True,
                                    transform=transforms.ToTensor(),
@@ -93,7 +94,13 @@ def load_mnist(case=2,load_model=True):
         y_test = y_test[test_inds]
 
     X_train = TensorDataset(torch.Tensor(X_train/255.))
-    X_test = TensorDataset(torch.Tensor(X_test/255.))
+    # X_test = TensorDataset(torch.Tensor(X_test/255.))
+    transform = transforms.Compose(
+        [transforms.Grayscale(),
+         transforms.ToTensor(),
+         transforms.Normalize((0.5,), (0.5,))])
+
+    X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
     ae = AutoEncoder(output_dim=100).to(device)
     if load_model:
         ae.load_networks('AutoEncoder/best_score')
@@ -101,7 +108,7 @@ def load_mnist(case=2,load_model=True):
         ae.train_autoencoder(DataLoader(X_train,batch_size=64))
         ae.save_network('AutoEncoder/','best_score')
     X_train = [ae.forward_encoder(x[0].to(device)) for x in X_train]
-    X_test = [ae.forward_encoder(x[0].to(device)) for x in X_test]
+    X_test = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_test]
     X_train = torch.cat(X_train,dim=0).reshape(-1,100).cpu().detach().numpy()
     X_test = torch.cat(X_test,dim=0).reshape(-1,100).cpu().detach().numpy()
 

@@ -222,7 +222,6 @@ def main():
     print(f"start_time: {start_time}")
     for i in count(1):
 
-
         # determint whether gesser or dqn is trained
         if i % (2 * FLAGS.ep_per_trainee) == FLAGS.ep_per_trainee:
             train_dqn = False
@@ -267,6 +266,7 @@ def main():
                 best_val_acc = new_best_val_acc
                 val_trials_without_improvement = 0
                 print(f"elapsed time: { round(time.time() - start_time)} seconds")
+                test()
             else:
                 val_trials_without_improvement += 1
 

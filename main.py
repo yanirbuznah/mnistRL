@@ -381,6 +381,62 @@ def test():
     print('Test accuracy: ', np.round(acc, 3))
 
 
+
+def test_on_adversarials():
+    """ Computes performance nad test data """
+
+    print('Loading best networks')
+    #TODO: add load networks functionality
+    env.net, agent.dqn = load_networks(i_episode='best')
+    # env.guesser, agent.dqn = load_networks(i_episode='best', avg_reward = )
+
+    # predict outcome on test data
+    y_hat_test = np.zeros(len(env.y_test))
+    y_hat_test_prob = np.zeros(len(env.y_test))
+
+    adversarial_examples = [247, 321, 445, 449, 582, 659, 726, 947, 1014, 1039, 1112, 1226, 1232, 1299, 1326, 1681, 1790, 1901, 2035, 2135, 2293, 2380, 2462, 2578, 2597, 2654, 2836, 2927, 3422, 3520, 3767, 4176, 4289, 4740, 4823, 4956, 5246, 5937, 6560, 6571, 6576, 6625, 9009, 9634, 9664, 9729, 9839]
+
+
+    print('Computing predictions of test data')
+    n_test = len(env.X_test)
+    for i in adversarial_examples:
+
+        if i % 1000 == 0:
+            print('{} / {}'.format(i, n_test))
+
+        state = env.reset(mode='test',
+                          patient=i,
+                          train_guesser=False)
+        mask = env.reset_mask()
+
+        # run episode
+        for t in range(FLAGS.episode_length):
+            must_guess = t == FLAGS.episode_length - 1
+            # select action from policy
+            action = agent.output_dim - 1 if must_guess else agent.get_action(state, eps=0, mask=mask)
+
+            mask[action] = 0
+
+            # take the action
+            state, reward, done, guess = env.step(action, mode='test')
+
+            if guess != -1:
+                y_hat_test_prob[i] = torch.argmax(env.probs).item()
+
+            if done:
+                break
+        y_hat_test[i] = guess
+
+    C = confusion_matrix(env.y_test, y_hat_test)
+    print('confusion matrix: ')
+    print(C)
+
+    acc = np.sum(np.diag(C)) / len(env.y_test)
+
+    print('Test accuracy: ', np.round(acc, 3))
+
+
+
 def view_images(nun_images=10, save=True):
     print('Loading best networks')
     env.net, agent.dqn = load_networks(i_episode='best')
@@ -431,4 +487,5 @@ if __name__ == '__main__':
 
     main()
     test()
+    test_on_adversarials()
     # view_images(10)

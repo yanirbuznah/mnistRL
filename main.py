@@ -19,6 +19,7 @@ from sklearn.metrics import confusion_matrix
 import utils
 from Agent import ReplayMemory, Agent
 from DDQNAgent import DDQNAgent
+from Guesser import Guesser
 from dqn import DQNAgent
 from dqn_parses import FLAGS
 # from mnist_env import Guesser
@@ -221,6 +222,7 @@ def main():
     print(f"start_time: {start_time}")
     for i in count(1):
 
+
         # determint whether gesser or dqn is trained
         if i % (2 * FLAGS.ep_per_trainee) == FLAGS.ep_per_trainee:
             train_dqn = False
@@ -333,7 +335,7 @@ def test():
 
     print('Loading best networks')
     #TODO: add load networks functionality
-    # env.guesser, agent.dqn = load_networks(i_episode='best')
+    env.net, agent.dqn = load_networks(i_episode='best')
     # env.guesser, agent.dqn = load_networks(i_episode='best', avg_reward = )
 
     # predict outcome on test data
@@ -429,4 +431,4 @@ if __name__ == '__main__':
 
     main()
     test()
-    view_images(10)
+    # view_images(10)

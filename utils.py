@@ -94,12 +94,13 @@ def load_mnist(case=2):
 
     X_train = TensorDataset(torch.Tensor(X_train/255.))
     X_test = TensorDataset(torch.Tensor(X_test/255.))
-    ae = AutoEncoder(output_dim=50).to(device)
+    ae = AutoEncoder(output_dim=100).to(device)
     ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+    ae.save_network('AutoEncoder/','best_score')
     X_train = [ae.forward_encoder(x[0].to(device)) for x in X_train]
     X_test = [ae.forward_encoder(x[0].to(device)) for x in X_test]
-    X_train = torch.cat(X_train,dim=0).reshape(-1,50).cpu().detach().numpy()
-    X_test = torch.cat(X_test,dim=0).reshape(-1,50).cpu().detach().numpy()
+    X_train = torch.cat(X_train,dim=0).reshape(-1,100).cpu().detach().numpy()
+    X_test = torch.cat(X_test,dim=0).reshape(-1,100).cpu().detach().numpy()
 
     # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
     return X_train, X_test, y_train, y_test

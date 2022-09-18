@@ -52,7 +52,7 @@ class Mnist_env(gym.Env):
         self.device = device
 
         # Load data
-        self.n_questions = 50
+        self.n_questions = 100
         self.X_train, self.X_test, self.y_train, self.y_test = utils.load_mnist()
 
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
@@ -152,8 +152,10 @@ class Mnist_env(gym.Env):
         self.time += 1
         if self.time == self.episode_length:
             self.terminate_episode()
-
-        return self.s, self.reward, self.done, self.guess, self.true_y
+        if mode == 'training':
+            return self.s, self.reward, self.done, self.guess, self.true_y
+        else:
+            return self.s, self.reward, self.done, self.guess
 
     # Update 'done' flag when episode terminates
     def terminate_episode(self):

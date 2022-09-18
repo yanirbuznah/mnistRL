@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -13,7 +15,7 @@ BATCH_SIZE = 64
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class AutoEncoder(nn.Module):
-    def __init__(self,output_dim = 50):
+    def __init__(self,output_dim = 100):
         super(AutoEncoder, self).__init__()
 
         self.encoder = nn.Sequential(
@@ -62,3 +64,19 @@ class AutoEncoder(nn.Module):
                     print(f'\rAutoEncoder - Epoch: {epoch} | Step: {step}\{len(train_loader)} | Train loss: {loss.data.cpu().numpy():.4f}', end='')
 
         print('\n')
+
+    def save_network(self, save_dir,name):
+        """ A function that saves the gesser params"""
+
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        save_path = os.path.join(save_dir, name)
+
+        # save guesser
+        if os.path.exists(save_path):
+            os.remove(save_path)
+        torch.save(self.state_dict(), save_path)
+
+    def load_networks(self,filename):
+        torch.load(self.state_dict(), filename)

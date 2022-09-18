@@ -127,7 +127,7 @@ parser.add_argument("--batch_size",
                     help="Mini-batch size")
 parser.add_argument("--hidden-dim",
                     type=int,
-                    default=64,
+                    default=256,
                     help="Hidden dimension")
 parser.add_argument("--capacity",
                     type=int,
@@ -167,7 +167,7 @@ parser.add_argument("--val_interval",
                     help="Interval for calculating validation reward and saving model")
 parser.add_argument("--episode_length",
                     type=int,
-                    default=6,
+                    default=10,
                     help="Episode length")
 parser.add_argument("--case",
                     type=int,

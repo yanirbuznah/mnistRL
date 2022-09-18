@@ -51,7 +51,7 @@ def load_data(case):
     return X, y, question_names, class_names, scaler
 
 
-def load_mnist(case=2):
+def load_mnist(case=2,load_model=True):
     train_dataset = datasets.MNIST(root='./data/',
                                    train=True,
                                    transform=transforms.ToTensor(),
@@ -95,8 +95,11 @@ def load_mnist(case=2):
     X_train = TensorDataset(torch.Tensor(X_train/255.))
     X_test = TensorDataset(torch.Tensor(X_test/255.))
     ae = AutoEncoder(output_dim=100).to(device)
-    ae.train_autoencoder(DataLoader(X_train,batch_size=64))
-    ae.save_network('AutoEncoder/','best_score')
+    if load_model:
+        ae.load_networks('AutoEncoder/best_score')
+    else:
+        ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+        ae.save_network('AutoEncoder/','best_score')
     X_train = [ae.forward_encoder(x[0].to(device)) for x in X_train]
     X_test = [ae.forward_encoder(x[0].to(device)) for x in X_test]
     X_train = torch.cat(X_train,dim=0).reshape(-1,100).cpu().detach().numpy()

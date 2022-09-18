@@ -79,4 +79,4 @@ class AutoEncoder(nn.Module):
         torch.save(self.state_dict(), save_path)
 
     def load_networks(self,filename):
-        torch.load(self.state_dict(), filename)
+        self.load_state_dict(torch.load(filename))

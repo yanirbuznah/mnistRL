@@ -55,7 +55,10 @@ def load_data(case):
 def load_mnist(case=2,load_model=False):
     X_train = datasets.MNIST(root='./data/',
                                    train=True,
-                                   transform=transforms.ToTensor(),
+                                   transform=transforms.Compose(
+        [transforms.Grayscale(),
+         transforms.ToTensor(),
+         ]),
                                    download=True)
 
     X_test = datasets.MNIST(root='./data/',
@@ -96,24 +99,24 @@ def load_mnist(case=2,load_model=False):
     #
     # X_train = TensorDataset(torch.Tensor(X_train/255.))
     # # X_test = TensorDataset(torch.Tensor(X_test/255.))
-    # transform = transforms.Compose(
-    #     [transforms.Grayscale(),
-    #      transforms.ToTensor(),
-    #      transforms.Normalize((0.5,), (0.5,))])
-    #
-    # X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
-    ae = AutoEncoder(output_dim=100).to(device)
+    transform = transforms.Compose(
+        [transforms.Grayscale(),
+         transforms.ToTensor(),
+         ])
+
+    X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
+    ae = AutoEncoder(bottleneck_dim=200).to(device)
     if load_model:
         ae.load_networks('AutoEncoder/best_score')
     else:
         ae.train_autoencoder(DataLoader(X_train,batch_size=64))
-        ae.save_network('AutoEncoder/','best_score')
+        ae.save_network('AutoEncoder/', 'best_score')
     y_train = X_train.targets
     y_test = X_test.targets
-    X_train = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_train]
-    X_test = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_test]
-    X_train = torch.cat(X_train,dim=0).reshape(-1,100).cpu().detach().numpy()
-    X_test = torch.cat(X_test,dim=0).reshape(-1,100).cpu().detach().numpy()
+    # X_train = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_train]
+    # X_test = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_test]
+    # X_train = torch.cat(X_train,dim=0).reshape(-1,200).cpu().detach().numpy()
+    # X_test = torch.cat(X_test,dim=0).reshape(-1,200).cpu().detach().numpy()
 
     # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
     return X_train, X_test, y_train, y_test

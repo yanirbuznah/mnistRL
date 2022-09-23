@@ -6,7 +6,7 @@ import torch.nn as nn
 # torch.manual_seed(1)    # reproducible
 
 # Hyper Parameters
-EPOCH = 1
+EPOCH = 10
 BATCH_SIZE = 64
 # learning rate
 
@@ -28,6 +28,7 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x):
+        x = torch.flatten(x,start_dim=1)
         return self.encoder(x)
 
     def save_network(self, save_dir, name):
@@ -97,13 +98,13 @@ class AutoEncoder(nn.Module):
 
     def train_autoencoder(self, train_loader, loss_func=nn.MSELoss()):
         for epoch in range(EPOCH):
-            for step, (x, _) in enumerate(train_loader):
-                b_x = x.view(-1, 28 * 28).to(device)  # batch x, shape (batch, 28*28)
-                b_y = x.view(-1, 28 * 28).to(device)  # batch y, shape (batch, 28*28)
+            for step, (x, ) in enumerate(train_loader):
+                x = x.view(-1, 28 * 28).to(device)  # batch x, shape (batch, 28*28)
+                # b_y = x.view(-1, 28 * 28).to(device)  # batch y, shape (batch, 28*28)
 
-                encoded, decoded = self(b_x)
+                encoded, decoded = self(x)
 
-                loss = loss_func(decoded, b_y)  # mean square error
+                loss = loss_func(decoded, x)  # mean square error
                 self.optimizer.zero_grad()  # clear gradients for this training step
                 loss.backward()  # backpropagation, compute gradients
                 self.optimizer.step()  # apply gradients

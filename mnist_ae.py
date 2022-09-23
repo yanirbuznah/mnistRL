@@ -4,77 +4,33 @@ Created on Sat Dec  7 21:49:57 2019
 
 @author: urixs
 
-Environment for questionnaire
+Environment for MNIST
 
 """
-import os
-
-import gym
-import numpy as np
-import torch
-import torch.nn as nn
 from gym.spaces import Discrete, Box
-from sklearn.feature_selection import mutual_info_classif
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset, TensorDataset
 
 from AutoEncoder import AutoEncoder, Encoder
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-import utils
-
 from Guesser import Guesser
 
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Dec  7 21:49:57 2019
 
+@author: urixs
 
-class EnvNet(nn.Module):
-    def __init__(self, input_dim, embedding_dim=200, output_dim=10, mlp_hidden_dim=256):
-        super().__init__()
-        self.encoder = Encoder(input_dim, embedding_dim)
-        self.encoder.load_networks('AutoEncoder/best_score_encoder')
-        self.mlp = Guesser(state_dim=embedding_dim, hidden_dim=mlp_hidden_dim,
-                           num_classes=output_dim)
+Environment for MNIST
 
-        self.optimizer = torch.optim.Adam(self.parameters())
+"""
+import numpy as np
+import os
+from sklearn.model_selection import train_test_split
+from sklearn.feature_selection import mutual_info_classif
 
-        self.criterion = nn.CrossEntropyLoss()
+import gym
+import torch
 
-    def forward(self, x):
-        encoding = self.encoder(x)
-        logits, probs = self.mlp(encoding)
-        return logits, probs
-
-
-    def _to_variable(self, x: np.ndarray) -> torch.Tensor:
-        """torch.Variable syntax helper
-        Args:
-            x (np.ndarray): 2-D tensor of shape (n, input_dim)
-        Returns:
-            torch.Tensor: torch variable
-        """
-        return torch.autograd.Variable(torch.Tensor(x))
-
-    def save_network(self, i_episode, save_dir, acc=None):
-        """ A function that saves the gesser params"""
-
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        if i_episode == 'best':
-            guesser_filename = 'best_guesser.pth'
-        else:
-            guesser_filename = '{}_{}_{:1.3f}.pth'.format(i_episode, 'guesser', acc)
-
-        guesser_save_path = os.path.join(save_dir, guesser_filename)
-
-        # save guesser
-        if os.path.exists(guesser_save_path):
-            os.remove(guesser_save_path)
-        torch.save(self.state_dict(), guesser_save_path + '~')
-
-        os.rename(guesser_save_path + '~', guesser_save_path)
+import utils
 
 
 class Mnist_env(gym.Env):
@@ -89,32 +45,21 @@ class Mnist_env(gym.Env):
                  flags,
                  device,
                  oversample=True,
-                 load_pretrained_guesser=False):
+                 load_pretrained_guesser=True):
 
         case = flags.case
         episode_length = flags.episode_length
         self.device = device
 
         # Load data
-        self.n_questions = 28*28
-        # Reset environment
-        self.action_space = Discrete(n=self.n_questions + 1)
-        self.reward_range = tuple([-1., 1.])
-        self.observation_space = Box(-np.ones(self.n_questions), np.ones(self.n_questions))
+        self.n_questions = 200
+        self.X_train, self.X_val, self.X_test, self.y_train, self.y_val, self.y_test= utils.load_mnist()
 
-        self.X_train, self.X_test, self.y_train, self.y_test = utils.load_mnist()
-
-        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
-                                                                              self.y_train,
-                                                                              test_size=0.017)
-
-        # self.autoencoder = AutoEncoder()
-        # train_loader = DataLoader(TensorDataset(torch.Tensor(self.X_train)),batch_size=16)
-        # self.autoencoder.train_autoencoder(train_loader)
-
+        # self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
+        #                                                                       test_size=0.017)
 
         # Load / compute mutual information of each pixel with target
-        mi = utils.load_mi_scores(self.X_train, self.y_train)
+        mi = utils.load_mi_scores(self.X_train,self.y_train)
         if mi is None:
             print('Computing mutual information of each pixel with target')
             mi = mutual_info_classif(self.X_train, self.y_train)
@@ -122,7 +67,16 @@ class Mnist_env(gym.Env):
         scores = np.append(mi, .1)
         self.action_probs = scores / np.sum(scores)
 
-        self.net = EnvNet(self.n_questions, mlp_hidden_dim=flags.g_hidden_dim)
+        self.net = Guesser(state_dim=2 * self.n_questions,
+                           hidden_dim=flags.g_hidden_dim,
+                           lr=flags.lr,
+                           min_lr=flags.min_lr,
+                           weight_decay=flags.g_weight_decay,
+                           decay_step_size=12500,
+                           lr_decay_factor=0.1).to(self.device)
+        self.encoder = Encoder(28*28,self.n_questions).to(device)
+        self.encoder.load_networks('AutoEncoder/best_score_encoder')
+        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters())
         self.episode_length = episode_length
 
         # Load pre-trained guesser network, if needed
@@ -137,11 +91,10 @@ class Mnist_env(gym.Env):
         self.net.predict = False
         print('Initialized questionnaire environment')
 
-        self.lstm_loss = None
-
-        print('Initialized LSTM-mnist environment')
-
         # Reset environment
+        self.action_space = Discrete(n = self.n_questions +1)
+        self.reward_range = tuple([-1.,1.])
+        self.observation_space = Box(-np.ones(2 * self.n_questions),np.ones(2 * self.n_questions))
 
     def reset(self,
               mode='training',
@@ -158,19 +111,12 @@ class Mnist_env(gym.Env):
         Resets 'train_guesser' flag
         """
 
-        # Reset state
-        self.net.reset()
-
-        self.last_probs = 0
-
-        self.state = self.net.lstm.lstm_h.data.cpu().numpy()
+        self.state = np.concatenate([np.zeros(self.n_questions), np.zeros(self.n_questions)])
 
         if mode == 'training':
             self.patient = np.random.randint(self.X_train.shape[0])
         else:
             self.patient = patient
-
-        self.raw_state = torch.zeros((1, self.X_train[0].shape[0])).to(device)
 
         self.done = False
         self.s = np.array(self.state)
@@ -198,21 +144,19 @@ class Mnist_env(gym.Env):
 
         # update state
         next_state = self.update_state(action, mode)
-        self.state = torch.Tensor(next_state)
+        self.state = np.array(next_state)
         self.s = np.array(self.state)
 
-        '''        
         # compute reward
         self.reward = self.compute_reward(mode)
-        '''
+
         self.time += 1
         if self.time == self.episode_length:
             self.terminate_episode()
-
-        # compute reward
-        self.reward = self.compute_reward(mode)
-
-        return self.s, self.reward, self.done, self.guess, self.true_y
+        if mode == 'training':
+            return self.s, self.reward, self.done, self.guess, self.true_y
+        else:
+            return self.s, self.reward, self.done, self.guess
 
     # Update 'done' flag when episode terminates
     def terminate_episode(self):
@@ -231,19 +175,18 @@ class Mnist_env(gym.Env):
 
         if action < self.n_questions:  # Not making a guess
             if mode == 'training':
-                next_state[action] = self.X_train[self.patient, action]
+                next_state[action] = self.encoder(self.X_train[self.patient:self.patient+1])[0,action]
             elif mode == 'val':
-                next_state[action] = self.X_val[self.patient, action]
+                next_state[action] = self.encoder(self.X_val[self.patient:self.patient+1])[0,action]
             elif mode == 'test':
-                next_state[action] = self.X_test[self.patient, action]
+                next_state[action] = self.encoder(self.X_test[self.patient][0])[0,action]
             next_state[action + self.n_questions] += 1.
             guesser_input = self.net._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
             self.logits, self.probs = self.net(guesser_input)
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':
                 # store probability of true outcome for reward calculation
-                self.correct_prob = self.probs.squeeze()[self.y_train[
-                    self.patient]].item() - self.correct_prob  # - torch.max(self.probs).item()
+                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item() - self.correct_prob  # - torch.max(self.probs).item()
 
             self.done = False
 
@@ -268,14 +211,23 @@ class Mnist_env(gym.Env):
         # else:
         reward = self.correct_prob
         if self.train_guesser:
+            loss = torch.nn.MSELoss()
             # train guesser
-            self.net.optimizer.zero_grad()
-            y = torch.Tensor([self.true_y]).long()
-            y = y.to(device=self.device)
+            y = torch.Tensor([self.true_y]).long().to(device=self.device)
+
             self.net.train(mode=True)
+            self.net.optimizer.zero_grad()
             self.net.loss = self.net.criterion(self.logits, y)
             self.net.loss.backward()
             self.net.optimizer.step()
+
+
+            self.encoder_optimizer.zero_grad()
+            enc_out = self.encoder(self.X_train[self.patient:self.patient+1])
+            encoder_loss = loss(enc_out,enc_out) +self.net.criterion(self.logits.detach(),y)
+            # encoder_loss =
+            encoder_loss.backward()
+            self.encoder_optimizer.step()
             # update learning rate
             self.net.update_learning_rate()
 

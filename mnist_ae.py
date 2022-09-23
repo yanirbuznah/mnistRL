@@ -32,6 +32,7 @@ import torch
 
 import utils
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Mnist_env(gym.Env):
     """ Questionnaire Environment class
@@ -179,7 +180,7 @@ class Mnist_env(gym.Env):
             elif mode == 'val':
                 next_state[action] = self.encoder(self.X_val[self.patient:self.patient+1])[0,action]
             elif mode == 'test':
-                next_state[action] = self.encoder(self.X_test[self.patient][0])[0,action]
+                next_state[action] = self.encoder(self.X_test[self.patient][0].to(device))[0,action]
             next_state[action + self.n_questions] += 1.
             guesser_input = self.net._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
             self.logits, self.probs = self.net(guesser_input)
@@ -211,7 +212,7 @@ class Mnist_env(gym.Env):
         # else:
         reward = self.correct_prob
         if self.train_guesser:
-            loss = torch.nn.MSELoss()
+            loss = torch.nn.CrossEntropyLoss()
             # train guesser
             y = torch.Tensor([self.true_y]).long().to(device=self.device)
 
@@ -224,8 +225,8 @@ class Mnist_env(gym.Env):
 
             self.encoder_optimizer.zero_grad()
             enc_out = self.encoder(self.X_train[self.patient:self.patient+1])
-            encoder_loss = loss(enc_out,enc_out) +self.net.criterion(self.logits.detach(),y)
-            # encoder_loss =
+            encoder_loss = loss(enc_out,torch.LongTensor([0]))
+            encoder_loss.data = self.net.loss.data
             encoder_loss.backward()
             self.encoder_optimizer.step()
             # update learning rate

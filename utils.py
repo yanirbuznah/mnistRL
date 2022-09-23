@@ -121,7 +121,7 @@ def load_mnist(case=2,load_model=False):
     # X_test = torch.cat(X_test,dim=0).reshape(-1,200).cpu().detach().numpy()
 
     # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
-    return X_train.tensors[0], X_validate.tensors[0],X_test, y_train,y_validate, y_test
+    return X_train.tensors[0].to(device), X_validate.tensors[0][:3000].to(device),X_test, y_train,y_validate, y_test
 
 
 def load_mi_scores(X_train, y_train):

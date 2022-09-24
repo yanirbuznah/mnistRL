@@ -206,7 +206,7 @@ class Mnist_env(gym.Env):
         if mode == 'test':
             return None
         if mode == 'training':
-            self.true_y = self.X_train[self.patient][1]
+            self.true_y = self.y_train[self.patient]
 
         # if self.guess == -1:  # no guess was made
         #     return .01 * np.random.rand()

@@ -54,16 +54,16 @@ class Mnist_env(gym.Env):
 
         # Load data
         self.n_questions = 200
-        self.X_train, self.X_val, self.X_test, self.y_train, self.y_val, self.y_test= utils.load_mnist()
+        self.X_train, self.X_val, self.X_test =  utils.load_mnist()
 
-        # self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
+        # self.X_train, self.X_val, self.X_train.targets, self.y_val = train_test_split(self.X_train,
         #                                                                       test_size=0.017)
 
         # Load / compute mutual information of each pixel with target
-        mi = utils.load_mi_scores(self.X_train,self.y_train)
+        mi = utils.load_mi_scores(self.X_train.data.reshape(self.X_train.data.shape[0],-1),self.X_train.targets)
         if mi is None:
             print('Computing mutual information of each pixel with target')
-            mi = mutual_info_classif(self.X_train, self.y_train)
+            mi = mutual_info_classif(self.X_train, self.X_train.targets)
             np.save('./mnist/mi.npy', mi)
         scores = np.append(mi, .1)
         self.action_probs = scores / np.sum(scores)
@@ -115,7 +115,7 @@ class Mnist_env(gym.Env):
         self.state = np.concatenate([np.zeros(self.n_questions), np.zeros(self.n_questions)])
 
         if mode == 'training':
-            self.patient = np.random.randint(self.X_train.shape[0])
+            self.patient = np.random.randint(self.X_train.targets.shape[0])
         else:
             self.patient = patient
 
@@ -171,14 +171,14 @@ class Mnist_env(gym.Env):
         self.guess = torch.argmax(self.probs.squeeze()).item()
         if mode == 'training':
             # store probability of true outcome for reward calculation
-            self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item()  # - torc1
+            self.correct_prob = self.probs.squeeze()[self.X_train[self.patient][1]].item()  # - torc1
             # h.max(self.probs).item()
 
         if action < self.n_questions:  # Not making a guess
             if mode == 'training':
-                next_state[action] = self.encoder(self.X_train[self.patient:self.patient+1])[0,action]
+                next_state[action] = self.encoder(self.X_train[self.patient][0])[0,action]
             elif mode == 'val':
-                next_state[action] = self.encoder(self.X_val[self.patient:self.patient+1])[0,action]
+                next_state[action] = self.encoder(self.X_val[self.patient][0])[0,action]
             elif mode == 'test':
                 next_state[action] = self.encoder(self.X_test[self.patient][0].to(device))[0,action]
             next_state[action + self.n_questions] += 1.
@@ -187,7 +187,7 @@ class Mnist_env(gym.Env):
             self.guess = torch.argmax(self.probs.squeeze()).item()
             if mode == 'training':
                 # store probability of true outcome for reward calculation
-                self.correct_prob = self.probs.squeeze()[self.y_train[self.patient]].item() - self.correct_prob  # - torch.max(self.probs).item()
+                self.correct_prob = self.probs.squeeze()[self.X_train[self.patient][1]].item() - self.correct_prob  # - torch.max(self.probs).item()
 
             self.done = False
 
@@ -205,7 +205,7 @@ class Mnist_env(gym.Env):
         if mode == 'test':
             return None
         if mode == 'training':
-            self.true_y = self.y_train[self.patient]
+            self.true_y = self.X_train[self.patient][1]
 
         # if self.guess == -1:  # no guess was made
         #     return .01 * np.random.rand()
@@ -222,13 +222,13 @@ class Mnist_env(gym.Env):
             self.net.loss.backward()
             self.net.optimizer.step()
 
-
-            self.encoder_optimizer.zero_grad()
-            enc_out = self.encoder(self.X_train[self.patient:self.patient+1])
-            encoder_loss = loss(enc_out,torch.LongTensor([0]))
-            encoder_loss.data = self.net.loss.data
-            encoder_loss.backward()
-            self.encoder_optimizer.step()
+            # if self.done:
+            #     self.encoder_optimizer.zero_grad()
+            #     enc_out = self.encoder(self.X_train[self.patient:self.patient+1])
+            #     encoder_loss = loss(enc_out.cpu(),torch.LongTensor([0]))
+            #     encoder_loss.data = torch.tensor(1. - self.probs.squeeze()[self.X_train.targets[self.patient]].item())
+            #     encoder_loss.backward()
+            #     self.encoder_optimizer.step()
             # update learning rate
             self.net.update_learning_rate()
 

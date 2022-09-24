@@ -52,7 +52,7 @@ def load_data(case):
     return X, y, question_names, class_names, scaler
 
 
-def load_mnist(case=2,load_model=False):
+def load_mnist(case=2,load_model=True):
     X_train = datasets.MNIST(root='./data/',
                                    train=True,
                                    transform=transforms.Compose(
@@ -106,7 +106,7 @@ def load_mnist(case=2,load_model=False):
          ])
 
     X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
-    ae = AutoEncoder(bottleneck_dim=200).to(device)
+    ae = AutoEncoder(bottleneck_dim=100).to(device)
     if load_model:
         ae.load_networks('AutoEncoder/best_score')
     else:

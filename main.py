@@ -316,7 +316,7 @@ def val(i_episode: int,
             if done:
                 break
 
-    confmat = confusion_matrix(env.X_val.targets, y_hat_val)
+    confmat = confusion_matrix(env.y_val, y_hat_val)
     acc = np.sum(np.diag(confmat)) / len(env.X_val)
     # save_networks(i_episode, acc)
 
@@ -372,7 +372,7 @@ def test():
                 break
         y_hat_test[i] = guess
 
-    C = confusion_matrix(env.X_val.targets, y_hat_test)
+    C = confusion_matrix(env.y_test, y_hat_test)
     print('confusion matrix: ')
     print(C)
 

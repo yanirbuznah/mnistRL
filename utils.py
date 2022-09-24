@@ -106,22 +106,22 @@ def load_mnist(case=2,load_model=True):
          ])
 
     X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
-    ae = AutoEncoder(bottleneck_dim=100).to(device)
-    if load_model:
-        ae.load_networks('AutoEncoder/best_score')
-    else:
-        ae.train_autoencoder(DataLoader(X_train,batch_size=64))
-        ae.save_network('AutoEncoder/', 'best_score')
+    # ae = AutoEncoder(bottleneck_dim=100).to(device)
+    # if load_model:
+    #     ae.load_networks('AutoEncoder/best_score')
+    # else:
+    #     ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+    #     ae.save_network('AutoEncoder/', 'best_score')
     # X_train = X_train.train_data
-    # y_train = X_train.targets
-    # y_test = X_test.targets
-    # X_train = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_train]
-    # X_test = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_test]
-    # X_train = torch.cat(X_train,dim=0).reshape(-1,200).cpu().detach().numpy()
-    # X_test = torch.cat(X_test,dim=0).reshape(-1,200).cpu().detach().numpy()
-
+    y_train = X_train.targets.numpy()
+    y_test = np.array(X_test.targets)
+    X_train = [x[0].flatten().to(device) for x in X_train]
+    X_test = [x[0].flatten().to(device) for x in X_test]
+    X_train = torch.cat(X_train,dim=0).reshape(-1,28*28).cpu().detach().numpy()
+    X_test = torch.cat(X_test,dim=0).reshape(-1,28*28).cpu().detach().numpy()
+    #
     # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
-    return X_train,X_val, X_test
+    return X_train,y_train, X_test,y_test
 
 
 def load_mi_scores(X_train, y_train):
@@ -132,7 +132,7 @@ def load_mi_scores(X_train, y_train):
     else:
         return None
     '''
-    X_train = X_train.cpu()
+    # X_train = X_train.cpu()
     max_depth = 5
 
     # define a decision tree classifier

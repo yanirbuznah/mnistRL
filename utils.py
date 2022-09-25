@@ -52,7 +52,7 @@ def load_data(case):
     return X, y, question_names, class_names, scaler
 
 
-def load_mnist(case=2,load_model=True):
+def load_mnist(case=2,load_model=False):
     X_train = datasets.MNIST(root='./data/',
                                    train=True,
                                    transform=transforms.Compose(

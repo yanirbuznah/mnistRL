@@ -53,18 +53,25 @@ class Mnist_env(gym.Env):
         self.device = device
 
         # Load data
-        self.n_questions = 200
-        self.X_train, self.y_train,  self.X_test,self.y_test =  utils.load_mnist()
+        self.n_questions = 100
+        self.X_train, self.y_train,  self.X_test,self.y_test = utils.load_mnist()
 
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
                                                                               self.y_train,
                                                                               test_size=0.017)
+        ae = AutoEncoder(bottleneck_dim=self.n_questions ).to(device)
+        ae.train_autoencoder(DataLoader(self.X_train,batch_size=64))
 
+        self.encoder = ae.encoder
+        # self.encoder.load_networks('AutoEncoder/best_score_encoder')
+        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters())
+
+        X_train_after_encoding  = [self.encoder(torch.tensor(x).unsqueeze(0)).squeeze().detach().numpy() for x in self.X_train]
         # Load / compute mutual information of each pixel with target
-        mi = utils.load_mi_scores(self.X_train,self.y_train)
+        mi = utils.load_mi_scores(X_train_after_encoding,self.y_train)
         if mi is None:
             print('Computing mutual information of each pixel with target')
-            mi = mutual_info_classif(self.X_train, self.y_train)
+            mi = mutual_info_classif(X_train_after_encoding, self.y_train)
             np.save('./mnist/mi.npy', mi)
         scores = np.append(mi, .1)
         self.action_probs = scores / np.sum(scores)
@@ -76,9 +83,7 @@ class Mnist_env(gym.Env):
                            weight_decay=flags.g_weight_decay,
                            decay_step_size=12500,
                            lr_decay_factor=0.1).to(self.device)
-        self.encoder = Encoder(28*28,self.n_questions).to(device)
-        self.encoder.load_networks('AutoEncoder/best_score_encoder')
-        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters())
+
         self.episode_length = episode_length
 
         # Load pre-trained guesser network, if needed

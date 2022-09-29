@@ -51,8 +51,12 @@ def load_data(case):
 
     return X, y, question_names, class_names, scaler
 
-
 def load_mnist(case=2,load_model=False):
+    if case == 2:
+        return load_mnist2(load_model=load_model)
+    else:
+        return load_mnist1(load_model=load_model)
+def load_mnist1(case=2,load_model=True):
     X_train = datasets.MNIST(root='./data/',
                                    train=True,
                                    transform=transforms.Compose(
@@ -106,12 +110,12 @@ def load_mnist(case=2,load_model=False):
          ])
 
     X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
-    # ae = AutoEncoder(bottleneck_dim=100).to(device)
-    # if load_model:
-    #     ae.load_networks('AutoEncoder/best_score')
-    # else:
-    #     ae.train_autoencoder(DataLoader(X_train,batch_size=64))
-    #     ae.save_network('AutoEncoder/', 'best_score')
+    ae = AutoEncoder(bottleneck_dim=100).to(device)
+    if load_model:
+        ae.load_networks('AutoEncoder/best_score')
+    else:
+        ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+        ae.save_network('AutoEncoder/', 'best_score')
     # X_train = X_train.train_data
     y_train = X_train.targets.numpy()
     y_test = np.array(X_test.targets)
@@ -122,6 +126,73 @@ def load_mnist(case=2,load_model=False):
     #
     # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
     return X_train,y_train, X_test,y_test
+
+def load_mnist2(case=2,load_model=True):
+    X_train = datasets.MNIST(root='./data/',
+                                   train=True,
+                                   transform=transforms.ToTensor(),
+                                   download=True)
+
+    X_test = datasets.MNIST(root='./data/',
+                                  train=False,
+                                  transform=transforms.ToTensor())
+
+    # if os.path.exists(MNIST_PATH + 'X_test.npy'):
+    #     X_test = np.load(MNIST_PATH + 'X_test.npy')
+    # else:
+    #     X_test = read_idx(MNIST_PATH + 't10k-images-idx3-ubyte.gz')
+    #     X_test = X_test.reshape(-1, 28 * 28)
+    #     np.save(MNIST_PATH + 'X_test.npy', X_test)
+    # if os.path.exists(MNIST_PATH + 'X_train.npy'):
+    #     X_train = np.load(MNIST_PATH + 'X_train.npy')
+    # else:
+    #     X_train = read_idx(MNIST_PATH + 'train-images-idx3-ubyte.gz')
+    #     X_train = X_train.reshape(-1, 28 * 28)
+    #     np.save(MNIST_PATH + 'X_train.npy', X_train)
+    # if os.path.exists(MNIST_PATH + 'y_test.npy'):
+    #     y_test = np.load(MNIST_PATH + 'y_test.npy')
+    # else:
+    #     y_test = read_idx(MNIST_PATH + 't10k-labels-idx1-ubyte.gz')
+    #     np.save(MNIST_PATH + 'y_test.npy', y_test)
+    # if os.path.exists(MNIST_PATH + 'y_train.npy'):
+    #     y_train = np.load(MNIST_PATH + 'y_train.npy')
+    # else:
+    #     y_train = read_idx(MNIST_PATH + 'train-labels-idx1-ubyte.gz')
+    #     np.save(MNIST_PATH + 'y_train.npy', y_train)
+    #
+    # if case == 1:  # small version
+    #     train_inds = y_train <= 2
+    #     test_inds = y_test <= 2
+    #     X_train = X_train[train_inds]
+    #     X_test = X_test[test_inds]
+    #     y_train = y_train[train_inds]
+    #     y_test = y_test[test_inds]
+    #
+    #
+    # X_train = TensorDataset(torch.Tensor(X_train/255.))
+    # # X_test = TensorDataset(torch.Tensor(X_test/255.))
+    transform = transforms.Compose(
+        [transforms.Grayscale(),
+         transforms.ToTensor(),
+         transforms.Normalize((0.5,), (0.5,))])
+
+    X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
+    ae = AutoEncoder(bottleneck_dim=100).to(device)
+    if load_model:
+        ae.load_networks('AutoEncoder/best_score')
+    else:
+        ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+        ae.save_network('AutoEncoder/','best_score')
+    y_train = X_train.targets
+    y_test = X_test.targets
+    X_train = [ae.forward_encoder(x[0].to(device)) for x in X_train]
+    X_test = [ae.forward_encoder(x[0].to(device)) for x in X_test]
+    X_train = torch.cat(X_train,dim=0).reshape(-1,100).cpu().detach().numpy()
+    X_test = torch.cat(X_test,dim=0).reshape(-1,100).cpu().detach().numpy()
+
+    # return X_train / 127.5 - 1., X_test / 127.5 - 1, y_train, y_test
+    return X_train,y_train, X_test,y_test
+
 
 
 def load_mi_scores(X_train, y_train):

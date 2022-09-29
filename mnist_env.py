@@ -52,8 +52,8 @@ class Mnist_env(gym.Env):
         self.device = device
 
         # Load data
-        self.n_questions = 200
-        self.X_train, self.X_test, self.y_train, self.y_test = utils.load_mnist()
+        self.n_questions = 100
+        self.X_train, self.y_train,self.X_test,  self.y_test = utils.load_mnist()
 
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
                                                                               self.y_train,

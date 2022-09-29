@@ -167,7 +167,7 @@ parser.add_argument("--val_interval",
                     help="Interval for calculating validation reward and saving model")
 parser.add_argument("--episode_length",
                     type=int,
-                    default=20,
+                    default=10,
                     help="Episode length")
 parser.add_argument("--case",
                     type=int,

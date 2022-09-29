@@ -23,8 +23,10 @@ from Guesser import Guesser
 from dqn import DQNAgent
 from dqn_parses import FLAGS
 # from mnist_env import Guesser
-from mnist_ae import Mnist_env
-
+if FLAGS.case == 2:
+    from mnist_env import Mnist_env
+else:
+    from mnist_ae import Mnist_env
 # set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # time.sleep(600)

@@ -67,10 +67,10 @@ class DDQNAgent(Agent):
         """
         if np.random.rand() < eps:
             r = np.random.rand()
-            if r < .8:
+            if r < .2:
                 return np.random.choice(self.output_dim)
-            # elif r < .6:
-            #     return np.random.choice(self.output_dim, p=self.env.action_probs)
+            elif r < .6:
+                return np.random.choice(self.output_dim, p=self.env.action_probs)
             else:
                 return self.output_dim - 1
         else:

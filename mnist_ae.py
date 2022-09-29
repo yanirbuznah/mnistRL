@@ -188,8 +188,7 @@ class Mnist_env(gym.Env):
             elif mode == 'test':
                 next_state[action] =self.encoder(torch.tensor(self.X_test[self.patient:self.patient+1]))[0,action]
             next_state[action + self.n_questions] += 1.
-            x = self.n_questions - np.sum(next_state[self.n_questions:])
-            next_state *= x
+
             guesser_input = self.net._to_variable(next_state.reshape(-1, 2 * self.n_questions)).to(self.device)
             self.logits, self.probs = self.net(guesser_input)
             self.guess = torch.argmax(self.probs.squeeze()).item()

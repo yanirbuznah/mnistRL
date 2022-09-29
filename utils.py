@@ -59,10 +59,7 @@ def load_mnist(case=2,load_model=False):
 def load_mnist1(case=2,load_model=True):
     X_train = datasets.MNIST(root='./data/',
                                    train=True,
-                                   transform=transforms.Compose(
-        [transforms.Grayscale(),
-         transforms.ToTensor(),
-         ]),
+                                   transform=transforms.ToTensor(),
                                    download=True)
 
     X_val = datasets.MNIST(root='./data/',
@@ -185,8 +182,8 @@ def load_mnist2(case=2,load_model=True):
         ae.save_network('AutoEncoder/','best_score')
     y_train = X_train.targets
     y_test = X_test.targets
-    X_train = [ae.forward_encoder(x[0].to(device)) for x in X_train]
-    X_test = [ae.forward_encoder(x[0].to(device)) for x in X_test]
+    X_train = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_train]
+    X_test = [ae.forward_encoder(x[0].flatten().to(device)) for x in X_test]
     X_train = torch.cat(X_train,dim=0).reshape(-1,100).cpu().detach().numpy()
     X_test = torch.cat(X_test,dim=0).reshape(-1,100).cpu().detach().numpy()
 

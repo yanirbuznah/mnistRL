@@ -54,7 +54,7 @@ class Mnist_env(gym.Env):
 
         # Load data
         self.n_questions = 100
-        self.X_train, self.y_train,  self.X_test,self.y_test = utils.load_mnist()
+        self.X_train, self.y_train,  self.X_test,self.y_test = utils.load_mnist(case= case)
 
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
                                                                               self.y_train,
@@ -64,9 +64,9 @@ class Mnist_env(gym.Env):
 
         self.encoder = ae.encoder
         # self.encoder.load_networks('AutoEncoder/best_score_encoder')
-        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters())
+        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters(),lr=1e-4)
 
-        X_train_after_encoding  = [self.encoder(torch.tensor(x).unsqueeze(0)).squeeze().detach().numpy() for x in self.X_train]
+        X_train_after_encoding  = [self.encoder(torch.tensor(self.X_train[i:i+1])).squeeze().detach().numpy() for i in range(len(self.X_train))]
         # Load / compute mutual information of each pixel with target
         mi = utils.load_mi_scores(X_train_after_encoding,self.y_train)
         if mi is None:
@@ -229,13 +229,15 @@ class Mnist_env(gym.Env):
             self.net.loss.backward()
             self.net.optimizer.step()
 
-            # if self.done:
-            #     self.encoder_optimizer.zero_grad()
-            #     enc_out = self.encoder(self.X_train[self.patient:self.patient+1])
-            #     encoder_loss = loss(enc_out.cpu(),torch.LongTensor([0]))
-            #     encoder_loss.data = torch.tensor(1. - self.probs.squeeze()[self.X_train.targets[self.patient]].item())
-            #     encoder_loss.backward()
-            #     self.encoder_optimizer.step()
+            if self.done:
+                self.encoder_optimizer.zero_grad()
+
+                enc_out = self.encoder(torch.tensor(self.X_train[self.patient:self.patient + 1]))
+                encoder_loss = loss(enc_out.cpu(),torch.LongTensor([0]))
+                encoder_loss.data = loss(self.logits,torch.tensor(self.y_train[self.patient:self.patient+1])) * 0.001
+                # encoder_loss.data = torch.tensor(1. - self.probs.squeeze()[self.y_train[self.patient]].item())
+                encoder_loss.backward()
+                self.encoder_optimizer.step()
             # update learning rate
             self.net.update_learning_rate()
 

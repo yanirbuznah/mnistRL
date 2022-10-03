@@ -115,7 +115,7 @@ parser.add_argument("--n_update_target_dqn",
                     help="Mumber of episodes between updates of target dqn")
 parser.add_argument("--val_trials_wo_im",
                     type=int,
-                    default=200,
+                    default=100,
                     help="Number of validation trials without improvement")
 parser.add_argument("--ep_per_trainee",
                     type=int,
@@ -167,11 +167,11 @@ parser.add_argument("--val_interval",
                     help="Interval for calculating validation reward and saving model")
 parser.add_argument("--episode_length",
                     type=int,
-                    default=10,
+                    default=20,
                     help="Episode length")
 parser.add_argument("--case",
                     type=int,
-                    default=2,
+                    default=1,
                     help="Which data to use")
 parser.add_argument("--env",
                     type=str,

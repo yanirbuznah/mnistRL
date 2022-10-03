@@ -23,10 +23,12 @@ from Guesser import Guesser
 from dqn import DQNAgent
 from dqn_parses import FLAGS
 # from mnist_env import Guesser
-if FLAGS.case == 2:
-    from mnist_env import Mnist_env
-else:
+if FLAGS.case == 1:
+    print("case 1 - trainable encoder")
     from mnist_ae import Mnist_env
+else:
+    print("case 2 - pretrained encoder")
+    from mnist_env import Mnist_env
 # set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # time.sleep(600)
@@ -290,9 +292,9 @@ def val(i_episode: int,
     """ Compute performance on validation set and save current models """
 
     print('\nRunning validation')
-    y_hat_val = np.zeros(len(env.X_val))
+    y_hat_val = np.zeros(len(env.y_val))
 
-    for i in range(100):  # count(1)
+    for i in range(len(env.X_val)):  # count(1)
 
         ep_reward = 0
         state = env.reset(mode='val',
@@ -319,7 +321,7 @@ def val(i_episode: int,
                 break
 
     confmat = confusion_matrix(env.y_val, y_hat_val)
-    acc = np.sum(np.diag(confmat)) / len(env.X_val)
+    acc = np.sum(np.diag(confmat)) / len(env.y_val)
     # save_networks(i_episode, acc)
 
     if acc > best_val_acc:
@@ -341,8 +343,8 @@ def test():
     # env.guesser, agent.dqn = load_networks(i_episode='best', avg_reward = )
 
     # predict outcome on test data
-    y_hat_test = np.zeros(len(env.X_test))
-    y_hat_test_prob = np.zeros(len(env.X_test))
+    y_hat_test = np.zeros(len(env.y_test))
+    y_hat_test_prob = np.zeros(len(env.y_test))
 
     print('Computing predictions of test data')
     n_test = len(env.X_test)
@@ -378,7 +380,7 @@ def test():
     print('confusion matrix: ')
     print(C)
 
-    acc = np.sum(np.diag(C)) / len(env.X_test)
+    acc = np.sum(np.diag(C)) / len(env.y_test)
 
     print('Test accuracy: ', np.round(acc, 3))
 
@@ -393,8 +395,8 @@ def test_on_adversarials():
     # env.guesser, agent.dqn = load_networks(i_episode='best', avg_reward = )
 
     # predict outcome on test data
-    y_hat_test = np.zeros(len(env.X_test))
-    y_hat_test_prob = np.zeros(len(env.X_test))
+    y_hat_test = np.zeros(len(env.y_test))
+    y_hat_test_prob = np.zeros(len(env.y_test))
 
     adversarial_examples = [247, 321, 445, 449, 582, 659, 726, 947, 1014, 1039, 1112, 1226, 1232, 1299, 1326, 1681, 1790, 1901, 2035, 2135, 2293, 2380, 2462, 2578, 2597, 2654, 2836, 2927, 3422, 3520, 3767, 4176, 4289, 4740, 4823, 4956, 5246, 5937, 6560, 6571, 6576, 6625, 9009, 9634, 9664, 9729, 9839]
 
@@ -429,11 +431,11 @@ def test_on_adversarials():
                 break
         y_hat_test[i] = guess
 
-    C = confusion_matrix(env.X_test, y_hat_test)
+    C = confusion_matrix(env.y_test, y_hat_test)
     print('confusion matrix: ')
     print(C)
 
-    acc = np.sum(np.diag(C)) / len(env.X_test)
+    acc = np.sum(np.diag(C)) / len(env.y_test)
 
     print('Test accuracy: ', np.round(acc, 3))
 
@@ -452,7 +454,7 @@ def view_images(nun_images=10, save=True):
             os.makedirs(FLAGS.masked_images_dir)
 
     for i in range(nun_images):
-        patient = np.random.randint(len(env.X_test))
+        patient = np.random.randint(len(env.y_test))
         state = env.reset(mode='test',
                           patient=patient,
                           train_guesser=False)
@@ -477,7 +479,7 @@ def view_images(nun_images=10, save=True):
                 image[actions[j]] = -1
         utils.plot_mnist_digit(digit=image,
                                guess=guess,
-                               true_label=env.X_test[patient],
+                               true_label=env.y_test[patient],
                                num_steps=t,
                                save=save,
                                fig_num=i,

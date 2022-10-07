@@ -339,7 +339,7 @@ def test():
 
     print('Loading best networks')
     #TODO: add load networks functionality
-    env.net, agent.dqn = load_networks(i_episode='best')
+    # env.net, agent.dqn = load_networks(i_episode='best')
     # env.guesser, agent.dqn = load_networks(i_episode='best', avg_reward = )
 
     # predict outcome on test data

@@ -71,7 +71,7 @@ class Guesser(nn.Module):
         # if self.pretrain and self.p > 0.:
         # x = self.modified_dropout(x)
         # print
-
+        x = x.view(1,-1)
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)

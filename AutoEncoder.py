@@ -113,7 +113,7 @@ class AutoEncoder(nn.Module):
     def forward_encoder(self, x):
         return self.encoder(x)
 
-    def train_autoencoder(self, train_loader, loss_func=nn.MSELoss()):
+    def train_autoencoder(self, train_loader,test_loader = None, loss_func=nn.MSELoss()):
         for epoch in range(EPOCH):
             for step, (x,_) in enumerate(train_loader):
                 b_x = x.view(-1, 28*28).to(device)   # batch x, shape (batch, 28*28)
@@ -130,7 +130,22 @@ class AutoEncoder(nn.Module):
                     print(
                         f'\rAutoEncoder - Epoch: {epoch} | Step: {step}\{len(train_loader)} | Train loss: {loss.data.cpu().numpy():.4f}',
                         end='')
+            if test_loader is not None:
+                for step, (x, _) in enumerate(test_loader):
+                    b_x = x.view(-1, 28 * 28).to(device)  # batch x, shape (batch, 28*28)
+                    b_y = x.view(-1, 28 * 28).to(device)  # batch y, shape (batch, 28*28)
 
+                    encoded, decoded = self(b_x)
+
+                    loss = loss_func(decoded, b_y)  # mean square error
+                    self.optimizer.zero_grad()  # clear gradients for this training step
+                    loss.backward()  # backpropagation, compute gradients
+                    self.optimizer.step()  # apply gradients
+
+                    if step % 100 == 0:
+                        print(
+                            f'\rAutoEncoder - Epoch: {epoch} | Step: {step}\{len(test_loader)} | Train loss: {loss.data.cpu().numpy():.4f}',
+                            end='')
         print('\n')
 
     def save_network(self, save_dir, name):

@@ -171,7 +171,7 @@ parser.add_argument("--episode_length",
                     help="Episode length")
 parser.add_argument("--case",
                     type=int,
-                    default=1,
+                    default=2,
                     help="Which data to use")
 parser.add_argument("--env",
                     type=str,

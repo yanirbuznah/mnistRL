@@ -253,12 +253,7 @@ def main():
         print(f"\r[Episode: {i:5}], Steps: {t}, Avg steps: {np.mean(steps):1.3f},"
               f" Reward: {r:1.3f}, Avg reward: {np.mean(rewards):1.3f}, 𝜺-greedy: {eps:5.2f}",end='')
 
-        # check if environment is solved
-        if len(rewards) == rewards.maxlen:
-            if np.mean(rewards) >= clear_threshold:
-                print("Environment solved in {} episodes with {:1.3f}".format(i, np.mean(rewards)))
-                print(f"elapsed time: {time.time() - start_time} seconds")
-                break
+
 
         if i % FLAGS.val_interval == 0:
             # compute performance on validation set
@@ -273,7 +268,12 @@ def main():
                 test()
             else:
                 val_trials_without_improvement += 1
-
+            # check if environment is solved
+            if new_best_val_acc > 0.99:
+                # if np.mean(rewards) >= clear_threshold:
+                print("Environment solved in {} episodes with {:1.3f}".format(i, np.mean(rewards)))
+                print(f"elapsed time: {time.time() - start_time} seconds")
+                break
         # if val_trials_without_improvement == int(FLAGS.val_trials_wo_im / 2):
         #     env.guesser, agent.dqn = load_networks(i_episode='best')
 

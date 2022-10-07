@@ -51,7 +51,7 @@ def load_data(case):
 
     return X, y, question_names, class_names, scaler
 
-def load_mnist(case=2,load_model=True):
+def load_mnist(case=2,load_model=False):
     if case == 2:
         return load_mnist2(load_model=load_model)
     else:
@@ -111,7 +111,8 @@ def load_mnist1(case=2,load_model=True):
     if load_model:
         ae.load_networks('AutoEncoder/best_score')
     else:
-        ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+
+        ae.train_autoencoder(DataLoader(X_train,batch_size=64),DataLoader(X_test,batch_size=64))
         ae.save_network('AutoEncoder/', 'best_score')
     # X_train = X_train.train_data
     y_train = X_train.targets.numpy()
@@ -178,7 +179,7 @@ def load_mnist2(case=2,load_model=True):
     if load_model:
         ae.load_networks('AutoEncoder/best_score')
     else:
-        ae.train_autoencoder(DataLoader(X_train,batch_size=64))
+        ae.train_autoencoder(DataLoader(X_train,batch_size=64),DataLoader(X_test,batch_size=64))
         ae.save_network('AutoEncoder/','best_score')
     y_train = X_train.targets
     y_test = X_test.targets

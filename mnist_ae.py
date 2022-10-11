@@ -13,6 +13,8 @@ from AutoEncoder import AutoEncoder
 from Guesser import Guesser
 
 # -*- coding: utf-8 -*-
+from transformer_ae import TransformerAutoEncoder
+
 """
 Created on Sat Dec  7 21:49:57 2019
 
@@ -59,7 +61,7 @@ class Mnist_env(gym.Env):
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train,
                                                                               self.y_train,
                                                                               test_size=0.017)
-        ae = AutoEncoder(bottleneck_dim=self.n_questions).to(device)
+        ae = TransformerAutoEncoder(bottleneck_dim=self.n_questions).to(device)
         ae.load_networks('AutoEncoder/best_score')
 
         self.encoder = ae.encoder

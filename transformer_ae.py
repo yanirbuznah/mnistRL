@@ -101,16 +101,16 @@ class TransformerAutoEncoder(nn.Module):
         self.optimizer = torch.optim.Adam(self.parameters())
 
     def forward(self, x):
-        return None, self.transformer_model(x.unsqueeze(1),x.unsqueeze(1))
+        return None, self.transformer_model(x,x)
 
     def forward_encoder(self, x):
-        return self.encoder(x.unsqueeze(1))
+        return self.encoder(x)
 
     def train_autoencoder(self, train_loader,test_loader = None, loss_func=nn.MSELoss()):
         for epoch in range(EPOCH):
             for step, (x,_) in enumerate(train_loader):
-                b_x = x.view(-1, 28*28).to(device)   # batch x, shape (batch, 28*28)
-                b_y = x.view(-1, 28*28).to(device)  # batch y, shape (batch, 28*28)
+                b_x = x.view(-1,1, 28*28).to(device)   # batch x, shape (batch, 28*28)
+                b_y = x.view(-1,1, 28*28).to(device)  # batch y, shape (batch, 28*28)
 
                 encoded, decoded = self(b_x)
 

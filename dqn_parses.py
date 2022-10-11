@@ -107,7 +107,7 @@ parser.add_argument("--masked_images_dir",
                     help="Directory for saved masked images")
 parser.add_argument("--gamma",
                     type=float,
-                    default=0.99,
+                    default=0.95,
                     help="Discount rate for Q_target")
 parser.add_argument("--n_update_target_dqn",
                     type=int,
@@ -115,7 +115,7 @@ parser.add_argument("--n_update_target_dqn",
                     help="Mumber of episodes between updates of target dqn")
 parser.add_argument("--val_trials_wo_im",
                     type=int,
-                    default=100,
+                    default=200,
                     help="Number of validation trials without improvement")
 parser.add_argument("--ep_per_trainee",
                     type=int,
@@ -171,7 +171,7 @@ parser.add_argument("--episode_length",
                     help="Episode length")
 parser.add_argument("--case",
                     type=int,
-                    default=2,
+                    default=1,
                     help="Which data to use")
 parser.add_argument("--env",
                     type=str,

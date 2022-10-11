@@ -66,7 +66,7 @@ class Mnist_env(gym.Env):
         # self.encoder.load_networks('AutoEncoder/best_score_encoder')
         self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters(), lr=1e-4)
 
-        X_train_after_encoding = [self.encoder(torch.tensor(self.X_train[i:i + 1])).squeeze().detach().numpy() for i in
+        X_train_after_encoding = [self.encoder(torch.tensor(self.X_train[i:i + 1]).to(device)).cpu().squeeze().detach().numpy() for i in
                                   range(len(self.X_train))]
         # Load / compute mutual information of each pixel with target
         mi = utils.load_mi_scores(X_train_after_encoding, self.y_train)
@@ -183,11 +183,11 @@ class Mnist_env(gym.Env):
 
         if action < self.n_questions:  # Not making a guess
             if mode == 'training':
-                next_state[action] = self.encoder(torch.tensor(self.X_train[self.patient:self.patient + 1]))[0, action]
+                next_state[action] = self.encoder(torch.tensor(self.X_train[self.patient:self.patient + 1]).to(device))[0, action]
             elif mode == 'val':
-                next_state[action] = self.encoder(torch.tensor(self.X_val[self.patient:self.patient + 1]))[0, action]
+                next_state[action] = self.encoder(torch.tensor(self.X_val[self.patient:self.patient + 1]).to(device))[0, action]
             elif mode == 'test':
-                next_state[action] = self.encoder(torch.tensor(self.X_test[self.patient:self.patient + 1]))[0, action]
+                next_state[action] = self.encoder(torch.tensor(self.X_test[self.patient:self.patient + 1]).to(device))[0, action]
             next_state[action + self.n_questions] += 1.
 
             guesser_input = self.net._to_variable(next_state[:self.n_questions]).to(self.device)
@@ -203,7 +203,7 @@ class Mnist_env(gym.Env):
 
         else:  # Making a guess
             # run guesser, and store guess and outcome probability
-            self.mask = torch.tensor(next_state[100:])
+            self.mask = torch.tensor(next_state[100:]).to(device)
             self.terminate_episode()
 
         return next_state
@@ -234,7 +234,7 @@ class Mnist_env(gym.Env):
             if self.done:
                 self.encoder_optimizer.zero_grad()
 
-                enc_out = self.encoder(torch.tensor(self.X_train[self.patient:self.patient + 1]))
+                enc_out = self.encoder(torch.tensor(self.X_train[self.patient:self.patient + 1]).to(device))
                 enc_out *= self.mask
                 guesser_out, _ = self.net(enc_out)
                 encoder_loss = loss(guesser_out,y)

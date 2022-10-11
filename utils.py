@@ -18,6 +18,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from torchvision import datasets, transforms
 
 from AutoEncoder import AutoEncoder
+from transformer_ae import TransformerAutoEncoder
 
 MNIST_PATH = "./data/MNIST/raw/"
 # set device
@@ -107,7 +108,7 @@ def load_mnist1(case=2,load_model=True):
          ])
 
     X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
-    ae = AutoEncoder(bottleneck_dim=100).to(device)
+    ae = TransformerAutoEncoder(bottleneck_dim=100).to(device)
     if load_model:
         ae.load_networks('AutoEncoder/best_score')
     else:
@@ -175,7 +176,7 @@ def load_mnist2(case=2,load_model=True):
          transforms.Normalize((0.5,), (0.5,))])
 
     X_test = torchvision.datasets.ImageFolder(root='DIDA/dataset_edited_test', transform=transform)
-    ae = AutoEncoder(bottleneck_dim=100).to(device)
+    ae = TransformerAutoEncoder(bottleneck_dim=100).to(device)
     if load_model:
         ae.load_networks('AutoEncoder/best_score')
     else:

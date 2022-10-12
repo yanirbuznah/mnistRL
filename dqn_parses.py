@@ -188,4 +188,4 @@ parser.add_argument("--g_weight_decay",
                     help="Guesser l_2 weight penalty")
 
 
-FLAGS = parser.parse_args(args=[])
+FLAGS = parser.parse_args()
